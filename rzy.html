@@ -1,0 +1,2757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>不知道起啥名</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #F5F5F7;
+            --text-main: #1D1D1F;
+            --text-secondary: #86868B;
+            --accent-color: #0066CC;
+            --card-bg: rgba(255, 255, 255, 0.7);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 15px;
+            z-index: 10;
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        #map-wrapper {
+            position: relative;
+            width: 96vw;
+            height: 85vh;
+            border-radius: 24px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.06);
+            background-color: #FFFFFF;
+            overflow: hidden;
+        }
+
+        #map-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        #back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-main);
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            display: none; 
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        #back-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(245, 245, 247, 0.5);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .overlay.active {
+            opacity: 1; visibility: visible;
+        }
+
+        .modal {
+            background: rgba(255, 255, 255, 0.9);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 28px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            transform: scale(0.95) translateY(20px);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+        }
+
+        .overlay.active .modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal::-webkit-scrollbar { display: none; }
+
+        .modal-cover {
+            width: 100%;
+            height: 220px;
+            border-top-left-radius: 28px;
+            border-top-right-radius: 28px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .modal-body {
+            padding: 30px 40px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px; right: 15px;
+            width: 32px; height: 32px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
+            border: none; border-radius: 50%;
+            font-size: 18px; color: var(--text-main);
+            cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .modal h2 {
+            font-size: 28px; font-weight: 600; margin-bottom: 20px; text-align: center;
+        }
+
+        .section-title {
+            font-size: 13px; text-transform: uppercase; color: var(--text-secondary);
+            font-weight: 600; margin-bottom: 8px; letter-spacing: 1px;
+        }
+
+        .content-box {
+            background: #F5F5F7; padding: 18px; border-radius: 16px; margin-bottom: 20px;
+        }
+
+        .content-box p {
+            font-size: 15px; line-height: 1.6; color: var(--text-main);
+        }
+        
+        .loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: var(--text-secondary); font-size: 15px; font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>    </h1>
+    </header>
+
+    <div id="map-wrapper">
+        <button id="back-btn">← 返回全国地图</button>
+        <div class="loading" id="loading-text">等会的</div>
+        <div id="map-container"></div>
+    </div>
+
+    <div class="overlay" id="overlay">
+        <div class="modal">
+            <button class="close-btn" id="close-btn">&times;</button>
+            <img id="modal-img" class="modal-cover" src="" alt="城市风景">
+            <div class="modal-body">
+                <h2 id="modal-title">城市名称</h2>
+                
+                <div class="section-title">城市印象</div>
+                <div class="content-box">
+                    <p id="modal-intro">这里是简介内容加载区。</p>
+                </div>
+
+                <div class="section-title">攻略与路线</div>
+                <div class="content-box">
+                    <p id="modal-guide">这里是攻略内容加载区。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        const provinceAdcodes = {
+            "北京市": "110000", "天津市": "120000", "河北省": "130000", "山西省": "140000", "内蒙古自治区": "150000",
+            "辽宁省": "210000", "吉林省": "220000", "黑龙江省": "230000", "上海市": "310000", "江苏省": "320000",
+            "浙江省": "330000", "安徽省": "340000", "福建省": "350000", "江西省": "360000", "山东省": "370000",
+            "河南省": "410000", "湖北省": "420000", "湖南省": "430000", "广东省": "440000", "广西壮族自治区": "450000",
+            "海南省": "460000", "重庆市": "500000", "四川省": "510000", "贵州省": "520000", "云南省": "530000",
+            "西藏自治区": "540000", "陕西省": "610000", "甘肃省": "620000", "青海省": "630000", "宁夏回族自治区": "640000",
+            "新疆维吾尔自治区": "650000", "台湾省": "710000", "香港特别行政区": "810000", "澳门特别行政区": "820000"
+        };
+
+      
+        const cityData = {
+          
+            "成都市": { 
+                intro: "雪山下的公园城市，这里是美食之都，也是大熊猫的故乡。节奏安逸，烟火气十足。", 
+                guide: "夏天成都市区较热，推荐早上去大熊猫繁育研究基地看花花，下午去杜甫草堂喝茶。避暑最佳路线是前往都江堰，感受两千年前水利工程带来的透心凉，晚上去宽窄巷子吃一顿正宗冷锅串串。",
+                img: "https://images.unsplash.com/photo-1598305364175-103362a4209d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+            },
+            "七台河市": {
+                intro: "冬奥冠军摇篮，中国短道速滑之乡，煤炭工业小城，山水相融，桃山湖、石龙山适合休闲徒步。",
+               guide: "参观短道速滑冠军馆了解冬奥故事，午后桃山湖环湖骑行，秋季登山赏红叶，本地特色烧烤、大碴粥值得一试。",
+               img: "https://images.unsplash.com/photo-1543060387-8328523fdb6f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+"哈尔滨市": {
+        intro: "冰城夏都，东方莫斯科，冰雪文化名城，欧式建筑林立，红肠、锅包肉闻名全国，冬天冰雪大世界美如童话。",
+        guide: "冬季必逛冰雪大世界、中央大街、圣索菲亚大教堂；夏天去太阳岛避暑，周边亚布力滑雪、五常稻田观光，晚餐打卡正宗俄式西餐与东北铁锅炖。",
+        img: "https://images.unsplash.com/photo-1549880338-65ddcdfd017b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+"齐齐哈尔市": {
+        intro: "丹顶鹤故乡，塞北湿地之城，烤肉出圈，百年龙沙公园藏着老城烟火，扎龙湿地是世界级观鸟胜地。",
+        guide: "春夏前往扎龙湿地看丹顶鹤放飞，傍晚逛龙沙夜市吃齐齐哈尔烤肉；秋季登明月岛赏江景，冬季泡连环湖温泉舒缓身心。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "鸡西市": {
+        intro: "中国石墨之都，中俄边境小城，坐拥亚洲最大界湖兴凯湖，兼具湖光湿地、红色历史与边境风情。",
+        guide: "夏季自驾兴凯湖沙滩戏水、品尝大白鱼；参观虎头要塞了解二战终结历史，顺路逛密山口岸，返程吃当地冷面与辣菜。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "鹤岗市": {
+        intro: "煤电之城，边境生态小城，紧邻黑龙江界江，北大荒文化浓郁，稻田风光与森林溪流相映成趣。",
+        guide: "春夏前往太平沟看界江峡谷，秋季打卡宝泉岭稻田画，市区逛矿山博物馆，晚餐品尝江鱼炖菜、东北粘豆包。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+"双鸭山市": {
+        intro: "三江平原湿地之都，乌苏里江沿岸城市，雁窝岛、七星峰风光原始，赫哲族渔猎文化特色鲜明。",
+        guide: "春秋去雁窝岛湿地观候鸟，登七星峰徒步山林，沿江乘船游览乌苏里江一江两国风光，必吃赫哲塔拉哈烤鱼。",
+        img: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "大庆市": {
+        intro: "中国油城，百湖之城，铁人精神发源地，城中遍布湖泊湿地，石油工业景观与城市花海相融。",
+        guide: "白天参观铁人纪念馆、大庆油田历史陈列馆，午后龙凤湿地观水鸟，傍晚北湖散步，晚餐品尝坑烤、大庆特色鱼锅。",
+        img: "https://images.unsplash.com/photo-1518709414768-a88981a4515d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "伊春市": {
+        intro: "红松故乡，林都天然氧吧，小兴安岭腹地，森林、溪流、石林遍布，四季均是避暑赏秋好去处。",
+        guide: "夏季进五营原始森林徒步，金山鹿苑喂小鹿；秋季汤旺河石林赏五花山，冬季体验森林冰雪漂流，特色美食森林铁锅炖。",
+        img: "https://images.unsplash.com/photo-1473448912268-2022ce9509fd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "佳木斯市": {
+        intro: "华夏东极门户，三江汇流之地，通往抚远黑瞎子岛必经之地，北大荒、抗联红色文化厚重，赫哲族聚居地。",
+        guide: "中转前往抚远看祖国第一缕日出，市区逛沿江公园，周边游三江湿地，开江季品尝新鲜鲟鳇鱼、鱼籽拌饭。",
+        img: "https://images.unsplash.com/photo-1535572979543-960a8046f5af?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "石家庄市": {
+        intro: "河北省会，华北交通枢纽，西靠太行山，拥有正定古城、赵州桥，是千年古郡与现代商贸融合之城。",
+        guide: "游览正定古城、隆兴寺看千手观音，打卡赵州桥，西部长青休闲，尝正宗石家庄板面、缸炉烧饼。",
+        img: "https://images.unsplash.com/photo-1547981609-4b6bfe67ca0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "唐山市": {
+        intro: "北方重工业重镇，渤海滨海城市，震后重建典范，清东陵坐落于此，陶瓷文化源远流长。",
+        guide: "逛清东陵皇家陵园，曹妃甸滨海游玩，南湖公园散心，品尝唐山麻糖、棋子烧饼、海鲜。",
+        img: "https://images.unsplash.com/photo-1518492104633-130d0cc84637?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "秦皇岛市": {
+        intro: "环渤海滨海避暑名城，山海关万里长城东起点，北戴河疗养胜地，海滨风光秀美。",
+        guide: "登山海关天下第一关，北戴河看海逛湿地，南戴河戏水，吃皮皮虾、海鲜蒸汽锅。",
+        img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+"南宁市": {
+        intro: "广西首府，绿城，邕江穿城，东盟门户，壮乡文化核心，交通枢纽城市。",
+        guide: "游青秀山、邕江夜游，逛中山路美食街，品尝老友粉、柠檬鸭、五色糯米饭。",
+        img: "https://images.unsplash.com/photo-1548013146-72479768bada?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "柳州市": {
+        intro: "工业山水名城，百里柳江风光，螺蛳粉发源地，少数民族风情浓郁。",
+        guide: "乘船游柳江夜景，逛窑埠古镇，打卡马鞍山，正宗螺蛳粉、鸭脚煲必尝。",
+        img: "https://images.unsplash.com/photo-1537531383496-f47498b8f138?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "桂林市": {
+        intro: "世界山水名片，喀斯特峰林地貌，漓江山水甲天下，历史文化旅游名城。",
+        guide: "漓江竹筏/游船，阳朔遇龙河骑行，龙脊梯田观光，吃啤酒鱼、桂林米粉。",
+        img: "https://images.unsplash.com/photo-1537531383496-f47498b8f138?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "梧州市": {
+        intro: "百年商埠，两广门户，六堡茶原产地，浔江、桂江交汇，骑楼老城特色鲜明。",
+        guide: "逛骑楼老街，品正宗六堡茶，打卡白云山，品尝纸包鸡、龟苓膏。",
+        img: "https://images.unsplash.com/photo-1541370976299-4d24ebbc9077?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "北海市": {
+        intro: "北部湾滨海旅游城市，银滩洁白绵长，涠洲岛火山海岛，海洋资源丰富。",
+        guide: "银滩踏浪，乘船登涠洲岛，侨港风情街逛吃，海鲜、虾饼、糖水不容错过。",
+        img: "https://images.unsplash.com/photo-1519046904884-53103b34b206?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "防城港市": {
+        intro: "中越边境口岸城市，北部湾港口，金滩、白浪滩滨海风光，京族聚居地。",
+        guide: "金滩看海，京岛体验京族风情，边境口岸观光，品尝越南风味海鲜、屈头蛋。",
+        img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "钦州市": {
+        intro: "北部湾临海城市，坭兴陶之都，三娘湾野生中华白海豚栖息地。",
+        guide: "三娘湾出海看白海豚，参观坭兴陶工坊，品尝钦州大蚝、猪脚粉。",
+        img: "https://images.unsplash.com/photo-1559825481-12a05cc00314?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "贵港市": {
+        intro: "广西内河航运重镇，浔郁平原粮仓，西山、龙潭森林景区，千年荷城。",
+        guide: "西山森林公园祈福，赏荷城荷花，品尝贵港藕粉、罗秀米粉。",
+        img: "https://images.unsplash.com/photo-1518492104633-130d0cc84637?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "玉林市": {
+        intro: "岭南商贸名城，荔枝桂圆主产区，云天宫人文地标，客家文化浓厚。",
+        guide: "游览云天文化城，荔枝园采摘，品尝玉林牛巴、牛腩粉、荔枝蜜。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "百色市": {
+        intro: "红色革命老区，右江起义发源地，喀斯特山水，芒果之乡，毗邻云南贵州。",
+        guide: "百色起义纪念园研学，乐业天坑群探险，品尝百色芒果、卷筒粉。",
+        img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "贺州市": {
+        intro: "桂东生态之城，黄姚千年古镇，喀斯特山水，瑶族、客家民俗丰富。",
+        guide: "慢游黄姚古镇，玉石林观光，泡温泉，品尝贺州酿菜、油茶。",
+        img: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "河池市": {
+        intro: "世界长寿之乡，刘三姐故乡，巴马、凤山山水秘境，少数民族聚居。",
+        guide: "巴马长寿村旅居，盘阳河观光，体验壮族山歌，吃香猪、豆腐圆。",
+        img: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "来宾市": {
+        intro: "壮乡新城，红水河穿境，百崖大峡谷，蔗糖核心产区，盘古文化发源地。",
+        guide: "百崖大峡谷徒步，红水河游船，品尝红糖制品、来宾米粉。",
+        img: "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "崇左市": {
+        intro: "中越边境山水城市，德天跨国瀑布，明仕田园喀斯特风光，边境口岸城市。",
+        guide: "德天跨国瀑布打卡，明仕田园竹筏，边境集市逛吃，品尝越南春卷、壮乡五色饭。",
+        img: "https://images.unsplash.com/photo-1523821741446-edb2b78bb7a5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "邯郸市": {
+        intro: "三千多年建城史，赵国故都，成语典故之都，娲皇宫、广府古城底蕴深厚。",
+        guide: "游览娲皇宫、广府古城，学太极文化，打卡丛台公园，品尝邯郸驴肉、一篓油水饺。",
+        img: "https://images.unsplash.com/photo-1533929736422-c44f61b31194?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "邢台市": {
+        intro: "太行山水名城，邢窑白瓷发源地，太行峡谷群遍布，殷商文化发祥地之一。",
+        guide: "游邢台大峡谷、云梦山，探访邢窑遗址，品尝威县火烧、邢台道口烧鸡。",
+        img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "保定市": {
+        intro: "京畿门户，直隶古城，白洋淀华北明珠，狼牙山红色圣地，驴肉火烧闻名全国。",
+        guide: "泛舟白洋淀，登狼牙山，逛直隶总督署，品尝正宗驴肉火烧、槐茂酱菜。",
+        img: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "张家口市": {
+        intro: "冬奥双城之一，坝上草原绵延，明长城遗存众多，草原与山地兼具，塞外风情浓郁。",
+        guide: "崇礼滑雪，张北坝上草原骑马，大境门长城打卡，吃莜面、柴沟堡熏肉。",
+        img: "https://images.unsplash.com/photo-1472214103451-9374bd1c798e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "承德市": {
+        intro: "清代皇家避暑胜地，避暑山庄、外八庙世界文化遗产，坝上草原、塞罕坝林海环绕。",
+        guide: "游览避暑山庄与外八庙，塞罕坝森林自驾，品尝汽锅野味、承德驴打滚。",
+        img: "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "沧州市": {
+        intro: "渤海湾运河名城，武术之乡、杂技之乡，吴桥杂技名扬海内外，黄骅港滨海区位突出。",
+        guide: "吴桥看杂技表演，登铁狮子古迹，沿海吃海鲜，品尝沧州羊肠汤、金丝小枣。",
+        img: "https://images.unsplash.com/photo-1505144808419-1957a94ca61e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "廊坊市": {
+        intro: "京津走廊黄金地段，毗邻北京天津，区位优越，文创、会展产业发达，湿地资源丰富。",
+        guide: "打卡香河家具城，游览胜芳古镇、文安湿地，品尝廊坊肉饼、熏鸽。",
+        img: "https://images.unsplash.com/photo-1517309230475-6736d926b979?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "衡水市": {
+        intro: "衡水湖华北内陆淡水湖，内画工艺发源地，教育名城，桃城、冀州历史悠久。",
+        guide: "衡水湖环湖骑行，观赏内画艺术品，品尝衡水湖烤鸭蛋、鞋底烧饼。",
+        img: "https://images.unsplash.com/photo-1523821741446-edb2b78bb7a5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "七台河市": {
+        intro: "冬奥冠军摇篮，中国短道速滑之乡，煤炭工业小城，山水相融，桃山湖、石龙山适合休闲徒步。",
+        guide: "参观短道速滑冠军馆了解冬奥故事，午后桃山湖环湖骑行，秋季登山赏红叶，本地特色烧烤、大碴粥值得一试。",
+        img: "https://images.unsplash.com/photo-1543060387-8328523fdb6f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "牡丹江市": {
+        intro: "塞北江南，雪乡、镜泊湖所在地，东北亚边境枢纽，林海雪原取景地，冬季雪景冠绝全国。",
+        guide: "冬季去双峰雪乡看童话木屋，吊水楼冰瀑；夏季游镜泊湖乘船游湖，傍晚逛绥芬河口岸，美食推荐镜泊湖鱼、冻梨。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "黑河市": {
+        intro: "中俄双子城，五大连池属地，火山矿泉世界地质公园，隔江对望俄罗斯布拉戈维申斯克，边境风情浓郁。",
+        guide: "全天游览五大连池火山、药泉山泡天然矿泉，市区中俄风情街采购俄货，傍晚江边看一江两国日落，特色矿泉豆腐、矿泉鱼。",
+        img: "https://images.unsplash.com/photo-1551524559-8af4e6624178?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "绥化市": {
+        intro: "寒地黑土粮仓，北方民俗之城，盛产优质稻米，关东民俗、朝鲜族风情交融，田园风光平缓治愈。",
+        guide: "春季兰西黄崖子民俗村体验东北老民俗，夏秋周边稻田观光采摘，市区逛金龟山庄休闲，必吃农家粘饼、稻田鱼。",
+        img: "https://images.unsplash.com/photo-1500382017490-dfd20a43596e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "大兴安岭地区": {
+        intro: "神州北极，中国最北端，原始寒温带针叶林，极光、极昼、驯鹿、白桦林，极致冰雪与秘境森林。",
+        guide: "冬季漠河北红村、北极村看极光、泼水成冰；夏季登北极广场打卡中国最北点，探访鄂温克驯鹿部落，品尝冷水鱼、山野菜。",
+        img: "https://images.unsplash.com/photo-1491002205336-5c3642e1849c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+              "阿坝藏族羌族自治州": { 
+                intro: "川西高原上的璀璨明珠，拥有九寨沟、黄龙、四姑娘山等世界级自然遗产。", 
+                guide: "绝对的避暑天堂！夏季均温仅15-22℃。建议花两天时间深度游览九寨沟，此时正是丰水期，海子色彩斑斓。随后可自驾前往若尔盖大草原，看黄河九曲第一湾的绝美日落。需备好秋装防寒。",
+                img: "https://images.unsplash.com/photo-1574488825852-520556834dd6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+            },
+            "甘孜藏族自治州": {
+                intro: "神秘的康巴腹地，这里的稻城亚丁被誉为“水蓝色星球上的最后一片净土”。",
+                guide: "这里是自驾游的终极梦想（如318川藏线）。夏天去理塘感受高原的狂野，或者在墨石公园拍出异星大片。由于海拔较高，紫外线极强，务必做好最高级别的物理和化学防晒。",
+                img: "https://images.unsplash.com/photo-1627885064619-38378dcc25f9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+            },
+         
+            "广州市": { 
+                intro: "羊城、花城，广府文化的核心，也是千年商都。“食在广州”名不虚传。", 
+                guide: "广州夏季漫长且湿热。白天的最佳去处是拥有强劲冷气的广东省博物馆，或者去长隆水上乐园痛快玩水。傍晚微风起时，乘坐珠江夜游船欣赏小蛮腰夜景，宵夜不可错过正宗的广式糖水（如杨枝甘露、双皮奶）来降温解暑。",
+                img: "https://images.unsplash.com/photo-1583248352195-d3a8e766edf2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+            },
+            "深圳市": { 
+                intro: "充满活力的鹏城，一半是科技之都的高楼林立，一半是山海相连的滨海风光。", 
+                guide: "夏天当然要去看海！推荐前往东部的大鹏半岛，在较场尾住民宿吹海风，或者去杨梅坑骑行最美海岸线。如果不喜欢暴晒，市内的深圳湾公园也是傍晚散步、看跨海大桥日落的好去处。",
+                img: "https://images.unsplash.com/photo-1590523722515-bbdb8b0fc4a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+            },
+    "北京市": {
+        intro: "中华人民共和国首都，千年古都，历史文化名城，兼具古典底蕴与现代繁华。",
+        guide: "游览故宫、天安门、八达岭长城、颐和园，夏季逛胡同避暑，品尝北京烤鸭、炸酱面。",
+        img: "https://images.unsplash.com/photo-1550340499-a6c608665f34"
+    },
+    "天津市": {
+        intro: "渤海明珠，曲艺之乡，中西合璧的滨海城市，欧式建筑与市井烟火相融。",
+        guide: "打卡天津之眼、意式风情街，听相声，吃嘎巴菜、麻花、海鲜，夏季沿海休闲散步。",
+        img: "https://images.unsplash.com/photo-1583247761013-064c2bed85d8"
+    },
+    "上海市": {
+        intro: "东方魔都，国际化大都市，中西文化交融，繁华与文艺并存。",
+        guide: "逛外滩、陆家嘴、豫园，夏季去迪士尼，吃生煎、小笼包，感受都市夜景。",
+        img: "https://images.unsplash.com/photo-1544551763-46a013bb70d5"
+    },
+    "重庆市": {
+        intro: "8D魔幻山城，火锅之都，江城雾都，立体建筑与江湖美食并存。",
+        guide: "游洪崖洞、长江索道，夏季去武隆避暑，全程火锅、小面、冰粉相伴。",
+        img: "https://images.unsplash.com/photo-1535958636712-012cb01e69d9"
+    },
+
+    // 黑龙江省（完整）
+    "哈尔滨市": {
+        intro: "冰城夏都，东方莫斯科，冰雪文化名城，欧式建筑林立，红肠、锅包肉闻名全国。",
+        guide: "冬季逛冰雪大世界、中央大街；夏季去太阳岛避暑，吃俄式西餐、铁锅炖。",
+        img: "https://images.unsplash.com/photo-1549880338-65ddcdfd017b"
+    },
+    "齐齐哈尔市": {
+        intro: "丹顶鹤故乡，塞北湿地之城，烤肉出圈，扎龙湿地是世界级观鸟胜地。",
+        guide: "春夏看丹顶鹤放飞，傍晚吃烤肉，秋季登明月岛，冬季泡连环湖温泉。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "鸡西市": {
+        intro: "中国石墨之都，中俄边境小城，坐拥亚洲最大界湖兴凯湖，湖光湿地与边境风情浓郁。",
+        guide: "夏季游兴凯湖，参观虎头要塞，吃大白鱼、冷面、辣菜。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "鹤岗市": {
+        intro: "煤电之城，界江生态小城，北大荒文化浓郁，稻田与森林相映成趣。",
+        guide: "春夏逛太平沟峡谷，秋季看稻田画，吃江鱼炖菜、粘豆包。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "双鸭山市": {
+        intro: "三江湿地之都，乌苏里江沿岸城市，赫哲族渔猎文化特色鲜明。",
+        guide: "春秋观候鸟，登七星峰，游乌苏里江，必吃赫哲烤鱼。",
+        img: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6"
+    },
+    "大庆市": {
+        intro: "中国油城，百湖之城，铁人精神发源地，湖泊湿地遍布全城。",
+        guide: "参观铁人纪念馆，逛龙凤湿地，吃坑烤、特色鱼锅。",
+        img: "https://images.unsplash.com/photo-1518709414768-a88981a4515d"
+    },
+    "伊春市": {
+        intro: "林都氧吧，红松故乡，小兴安岭腹地，森林溪流四季如画。",
+        guide: "夏季森林徒步，秋季赏五花山，吃森林铁锅炖。",
+        img: "https://images.unsplash.com/photo-1473448912268-2022ce9509fd"
+    },
+    "佳木斯市": {
+        intro: "华夏东极门户，三江汇流之地，赫哲族聚居地，红色文化浓厚。",
+        guide: "前往抚远看日出，逛三江湿地，吃鲟鳇鱼、鱼籽饭。",
+        img: "https://images.unsplash.com/photo-1535572979543-960a8046f5af"
+    },
+    "七台河市": {
+        intro: "冬奥冠军之乡，中国短道速滑摇篮，山水休闲小城。",
+        guide: "参观冠军馆，桃山湖骑行，吃烧烤、大碴粥。",
+        img: "https://images.unsplash.com/photo-1543060387-8328523fdb6f"
+    },
+    "牡丹江市": {
+        intro: "塞北江南，雪乡、镜泊湖所在地，林海雪原风光绝美。",
+        guide: "冬季游雪乡，夏季逛镜泊湖，吃镜泊湖鱼、冻梨。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "黑河市": {
+        intro: "中俄双子城，五大连池火山圣地，边境风情浓郁。",
+        guide: "游五大连池，逛中俄风情街，吃矿泉豆腐、矿泉鱼。",
+        img: "https://images.unsplash.com/photo-1551524559-8af4e6624178"
+    },
+    "绥化市": {
+        intro: "寒地黑土粮仓，北方民俗之城，田园风光平缓治愈。",
+        guide: "逛民俗村，稻田观光，吃农家粘饼、稻田鱼。",
+        img: "https://images.unsplash.com/photo-1500382017490-dfd20a43596e"
+    },
+    "大兴安岭地区": {
+        intro: "神州北极，中国最北端，极光、白桦林、驯鹿构成秘境风光。",
+        guide: "冬季看极光，夏季打卡最北点，吃冷水鱼、山野菜。",
+        img: "https://images.unsplash.com/photo-1491002205336-5c3642e1849c"
+    },
+
+    // 吉林省
+    "长春市": {
+        intro: "北国春城，汽车城、电影城，森林城，四季气候舒适。",
+        guide: "逛伪满皇宫、净月潭，夏季避暑，吃铁锅炖、朝鲜族美食。",
+        img: "https://images.unsplash.com/photo-1582738411706-bfc8e691d1c2"
+    },
+    "吉林市": {
+        intro: "雾凇之都，松花江穿城而过，山水相依，冬季雾凇奇观天下闻名。",
+        guide: "冬季看雾凇，夏季游松花湖，吃白鱼、煎粉。",
+        img: "https://images.unsplash.com/photo-1621642566909-1c406df61094"
+    },
+    "四平市": {
+        intro: "东北交通枢纽，英雄城，历史底蕴深厚，农业发达。",
+        guide: "逛叶赫那拉古城，吃熏肉大饼、东北菜。",
+        img: "https://images.unsplash.com/photo-1518709414768-a88981a4515d"
+    },
+    "辽源市": {
+        intro: "东北小上海，袜业之都，山水宜居小城。",
+        guide: "逛龙山公园，吃杀猪菜、锅包肉。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "通化市": {
+        intro: "医药城、葡萄酒城，长白山门户，生态环境优良。",
+        guide: "登长白山，品葡萄酒，吃高丽火盆、铁锅炖。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "白山市": {
+        intro: "长白山下森林城，天池所在地，生态纯净。",
+        guide: "游长白山天池，夏季避暑，吃山野菜、冷水鱼。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "松原市": {
+        intro: "三江交汇之城，粮仓之城，查干湖冬捕闻名全国。",
+        guide: "游查干湖，吃鱼宴，体验东北民俗。",
+        img: "https://images.unsplash.com/photo-1551524559-8af4e6624178"
+    },
+    "白城市": {
+        intro: "鹤乡之城，湿地草原遍布，风电新能源之都。",
+        guide: "逛向海湿地，观鸟，吃全鱼宴。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+
+    // 辽宁省
+    "沈阳市": {
+        intro: "盛京皇城，东北中心城市，历史厚重，工业底蕴深厚。",
+        guide: "逛故宫、张氏帅府，吃老边饺子、鸡架。",
+        img: "https://images.unsplash.com/photo-1550340499-a6c608665f34"
+    },
+    "大连市": {
+        intro: "北方明珠，海滨浪漫之都，海鲜肥美，气候宜人。",
+        guide: "逛星海广场、滨海路，夏季玩水，吃海鲜、焖子。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "鞍山市": {
+        intro: "钢都，千山所在地，山水与工业相融。",
+        guide: "登千山，逛玉佛苑，吃牛庄馅饼。",
+        img: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6"
+    },
+    "抚顺市": {
+        intro: "煤都，清王朝发源地，雷锋之城。",
+        guide: "逛赫图阿拉城，吃八碗菜、粘豆包。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "本溪市": {
+        intro: "地质之城，水洞奇观，枫叶之都。",
+        guide: "游本溪水洞，秋季赏枫叶，吃杀猪菜。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "东城区": {
+        intro: "首都核心老城，皇城根腹地，故宫、天安门坐落于此，京味历史底蕴拉满。",
+        guide: "上午逛故宫、天安门广场，午后漫步南锣鼓巷，傍晚吃北京炸酱面、爆肚，胡同烟火浓厚。",
+        img: "https://images.unsplash.com/photo-1550340499-a6c608665f34"
+    },
+    "西城区": {
+        intro: "皇城西侧文化区，什刹海、恭王府聚集地，老北京水系与王府建筑群集中。",
+        guide: "什刹海划船打卡恭王府，傍晚逛护国寺小吃街，品尝豆汁、驴打滚、卤煮火烧。",
+        img: "https://images.unsplash.com/photo-1508804185872-d7badad00f7d"
+    },
+    "朝阳区": {
+        intro: "北京国际时尚新区，国贸CBD、三里屯、798艺术区，年轻潮流聚集地。",
+        guide: "白天打卡798文创园，傍晚三里屯逛街，晚上国贸看城市夜景，多国料理齐全。",
+        img: "https://images.unsplash.com/photo-1547981609-4b6bfe67ca0b"
+    },
+    "海淀区": {
+        intro: "科教文化高地，清华北大、颐和园坐落，山林湖泊兼备，书香气息浓厚。",
+        guide: "游览颐和园、圆明园，打卡高校校园，夏季山林避暑，吃海淀涮肉、宫廷点心。",
+        img: "https://images.unsplash.com/photo-1598305364175-103362a4209d"
+    },
+    "丰台区": {
+        intro: "京南门户，卢沟桥、园博园所在地，兼具红色历史与园林风光。",
+        guide: "参观卢沟桥抗战纪念馆，逛北京园博园，周末休闲采摘，特色美食丰台烧鸽子。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "石景山区": {
+        intro: "西山休闲城区，首钢园、八大处景区，工业遗址与山林古寺相融。",
+        guide: "首钢园打卡工业风网红点，八大处爬山祈福，秋季赏红叶，品尝京味农家菜。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "通州区": {
+        intro: "北京城市副中心，大运河起点，运河文化古城，城市新规划核心。",
+        guide: "漫步大运河森林公园，打卡通州燃灯塔，运河游船观光，特色运河鱼宴。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "顺义区": {
+        intro: "京北休闲城区，首都机场、潮白河湿地，马术、温泉度假胜地。",
+        guide: "潮白河骑行露营，打卡温泉度假村，采摘樱桃葡萄，品尝顺义烤羊腿。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "昌平区": {
+        intro: "京北山水后花园，明十三陵、居庸关长城，温泉滑雪度假一体。",
+        guide: "登居庸关长城，游览十三陵，冬季滑雪夏季泡温泉，特色昌平春饼宴。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "大兴区": {
+        intro: "京南平原新城，大兴机场、南海子麋鹿苑，生态休闲农业大区。",
+        guide: "南海子公园看麋鹿，机场观景台打卡，采摘西瓜草莓，特色大兴驴肉。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "房山区": {
+        intro: "京西南山水秘境，十渡、云居寺，喀斯特峡谷与千年古刹并存。",
+        guide: "十渡漂流登山，云居寺观石刻经卷，农家院吃柴鸡炖蘑菇，山水避暑首选。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "门头沟区": {
+        intro: "京西古村落走廊，潭柘寺、爨底下古村，西山古道人文风光。",
+        guide: "逛明清古村落，潭柘寺祈福，山间徒步，品尝门头沟炸咯吱、压肉。",
+        img: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6"
+    },
+    "怀柔区": {
+        intro: "京北山水度假城，慕田峪长城、雁栖湖，湖光山色适合短途出游。",
+        guide: "慕田峪长城观光，雁栖湖环湖骑行，夜晚农家烤虹鳟鱼，秋季赏板栗。",
+        img: "https://images.unsplash.com/photo-1549880338-65ddcdfd017b"
+    },
+    "平谷区": {
+        intro: "京东桃乡，金海湖、石林峡，万亩桃园，山水采摘休闲区。",
+        guide: "金海湖游船，石林峡打卡网红玻璃观景台，夏季采摘大桃，平谷柴鸡锅。",
+        img: "https://images.unsplash.com/photo-1551524559-8af4e6624178"
+    },
+    "密云区": {
+        intro: "北京大水缸，密云水库全域生态区，古北水镇北方水乡。",
+        guide: "古北水镇夜游长城，水库吃鱼宴，春季赏花秋季摘苹果，山间民宿度假。",
+        img: "https://images.unsplash.com/photo-1473448912268-2022ce9509fd"
+    },
+    "延庆区": {
+        intro: "北京夏都，百里山水画廊、八达岭长城，冬奥冰雪文旅小城。",
+        guide: "八达岭长城游览，百里山水画廊自驾，冬季冰雪项目，特色火盆锅豆腐宴。",
+        img: "https://images.unsplash.com/photo-1491002205336-5c3642e1849c"
+    },
+    "和平区": {
+        intro: "天津核心老城，五大道、滨江道商圈，万国建筑集中，津门文化核心。",
+        guide: "漫步五大道小洋楼，滨江道逛街，听茶馆相声，品尝煎饼果子、熟梨糕。",
+        img: "https://images.unsplash.com/photo-1583247761013-064c2bed85d8"
+    },
+    "河东区": {
+        intro: "海河东岸城区，天津之眼坐落，滨河休闲长廊，市井生活气息浓厚。",
+        guide: "傍晚打卡天津之眼摩天轮，海河沿岸散步，夜市吃海鲜、炸糕。",
+        img: "https://images.unsplash.com/photo-1518709414768-a88981a4515d"
+    },
+    "河西区": {
+        intro: "天津政务文化新区，文化中心、梅江居住区，高端宜居片区。",
+        guide: "天津文化中心看展，梅江公园散步，打卡西餐厅与津味菜馆，吃罾蹦鲤鱼。",
+        img: "https://images.unsplash.com/photo-1570939859531-441ed12b337a"
+    },
+    "南开区": {
+        intro: "津门老城发源地，古文化街、南开大学，文庙与民俗文化聚集地。",
+        guide: "古文化街逛泥人张、杨柳青年画，品尝锅巴菜、耳朵眼炸糕，学府打卡。",
+        img: "https://images.unsplash.com/photo-1557164153-966665ee2192"
+    },
+    "河北区": {
+        intro: "意式风情区所在地，百年欧式建筑群，近代历史街区。",
+        guide: "意大利风情街拍照打卡，逛梁启超故居，晚上夜市吃烤海鲜、羊汤。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "红桥区": {
+        intro: "津西商贸老城，天津西站、清真美食聚集地，回民文化浓郁。",
+        guide: "逛清真大寺，吃牛肉饼、羊杂汤，西站周边城市休闲，老式津味小吃齐全。",
+        img: "https://images.unsplash.com/photo-1535572979543-960a8046f5af"
+    },
+    "东丽区": {
+        intro: "天津近郊休闲区，东丽湖温泉度假区，城郊采摘游玩目的地。",
+        guide: "东丽湖泡温泉，四季采摘果蔬，农家院吃炖土鸡，周末短途度假优选。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "西青区": {
+        intro: "天津文旅重镇，杨柳青古镇、石家大院，年画民俗之乡。",
+        guide: "杨柳青古镇逛大院，年画体验，夏季水高庄园游玩，特色西青沙窝萝卜。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "津南区": {
+        intro: "津南水乡，国家会展中心，小站稻农耕文化发源地。",
+        guide: "国家会展中心参观，小站稻农业观光，海河故道公园散步，稻田河鲜。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "北辰区": {
+        intro: "城北工业宜居区，北运河湿地，乡村休闲采摘片区。",
+        guide: "北运河湿地公园骑行，果蔬采摘，农家铁锅炖，城郊放松好去处。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "武清区": {
+        intro: "京津走廊，佛罗伦萨小镇，武清运河文化，休闲购物度假一体。",
+        guide: "奥特莱斯购物，南湖公园游玩，运河游船，特色武清熏肉、豆腐丝。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "宝坻区": {
+        intro: "京东水城，潮白河环绕，温泉之乡，农家美食丰富。",
+        guide: "潮白河垂钓，温泉度假村休闲，吃宝坻铁锅炖贴饼子、熏鸡。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "静海区": {
+        intro: "津南平原，团泊湖湿地，生态宜居，静海美食以炒河蟹出名。",
+        guide: "团泊湖环湖游玩，湿地观鸟，秋季吃稻田河蟹，农家宴席丰富。",
+        img: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6"
+    },
+    "宁河区": {
+        intro: "七里海湿地所在地，天津最大天然湿地，生态观鸟胜地。",
+        guide: "七里海湿地游船观候鸟，垂钓休闲，特色七里海河蟹、芦苇宴。",
+        img: "https://images.unsplash.com/photo-1549880338-65ddcdfd017b"
+    },
+    "蓟州区": {
+        intro: "天津后花园，盘山、黄崖关长城，山水古文化旅游区。",
+        guide: "登盘山赏山水，黄崖关长城观光，农家院吃柴鸡炖鱼，秋季采摘山楂。",
+        img: "https://images.unsplash.com/photo-1551524559-8af4e6624178"
+    },
+    "黄浦区": {
+        intro: "上海心脏，外滩、南京路、豫园齐聚，百年万国建筑与老城厢共生。",
+        guide: "白天豫园逛江南园林，傍晚外滩看万国建筑群夜景，吃南翔小笼、本帮菜。",
+        img: "https://images.unsplash.com/photo-1544551763-46a013bb70d5"
+    },
+    "徐汇区": {
+        intro: "上海文艺租界老城，武康路、衡山路梧桐街道，文艺洋房聚集地。",
+        guide: "武康路打卡网红建筑，衡山路漫步梧桐大道，品尝老上海糕点、罗宋汤。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "长宁区": {
+        intro: "虹桥涉外片区，愚园路文艺街区，静谧洋房街道，外籍文化浓厚。",
+        guide: "愚园路逛文创小店，虹桥商圈休闲，中西融合美食，蝴蝶酥、葱油饼。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "静安区": {
+        intro: "高端时尚核心，静安寺、南京西路商圈，奢华商业与古寺相融。",
+        guide: "静安寺祈福，南京西路逛街购物，高端西餐与老牌本帮点心并存。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "普陀区": {
+        intro: "苏州河沿岸城区，长风公园、M50创意园，工业文艺改造街区。",
+        guide: "M50文创园拍照，长风海洋世界游玩，苏州河散步，特色普陀葱油拌面。",
+        img: "https://images.unsplash.com/photo-1535572979543-960a8046f5af"
+    },
+    "虹口区": {
+        intro: "北外滩滨江，鲁迅故里，提篮桥历史街区，江景视野绝佳。",
+        guide: "北外滩眺望陆家嘴，鲁迅公园参观，提篮桥品尝本帮熟食、虹口糕团。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "杨浦区": {
+        intro: "百年工业老城，杨浦滨江、复旦大学，老厂房改造网红打卡地。",
+        guide: "杨浦滨江步道骑行，高校校园漫步，老牌杨浦大饼、生煎包。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "闵行区": {
+        intro: "上海西南新城，七宝古镇、迪士尼乐园，文旅休闲核心片区。",
+        guide: "迪士尼全天游玩，七宝古镇逛老街吃七宝汤团，夏季郊野公园露营。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "宝山区": {
+        intro: "北郊滨江城区，顾村公园、吴淞炮台，江滩与花海景观。",
+        guide: "春季顾村公园赏樱花，吴淞炮台观江景，夜市吃宝山海鲜、炸猪排。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "嘉定区": {
+        intro: "江南古城，嘉定孔庙、州桥老街，汽车产业重镇，古风现代兼具。",
+        guide: "州桥老街逛江南水乡，汽车博物馆参观，特色嘉定马陆葡萄、汤包。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "浦东新区": {
+        intro: "上海经济核心，陆家嘴摩天群、临港新城，滨江海岸线超长。",
+        guide: "陆家嘴登东方明珠，临港航海博物馆，滨江骑行，本帮菜、海鲜齐全。",
+        img: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6"
+    },
+    "金山区": {
+        intro: "上海滨海后花园，金山城市沙滩、枫泾古镇，滨海水乡一体。",
+        guide: "城市沙滩玩水，枫泾古镇逛水乡，吃枫泾丁蹄、农家糕点。",
+        img: "https://images.unsplash.com/photo-1549880338-65ddcdfd017b"
+    },
+    "松江区": {
+        intro: "上海之根，广富林、佘山，千年历史发源地，山林文旅胜地。",
+        guide: "广富林遗址打卡水下博物馆，佘山登山，特色松江四鳃鲈鱼、糕点。",
+        img: "https://images.unsplash.com/photo-1551524559-8af4e6624178"
+    },
+    "青浦区": {
+        intro: "江南水乡核心，朱家角古镇、淀山湖，湖光水乡风光。",
+        guide: "朱家角古镇游船，淀山湖环湖露营，品尝扎肉、粽子、淀山湖湖鲜。",
+        img: "https://images.unsplash.com/photo-1473448912268-2022ce9509fd"
+    },
+    "奉贤区": {
+        intro: "上海花海之城，海湾沙滩、庄行菜花田，近郊休闲度假地。",
+        guide: "海湾沙滩玩水，春季庄行赏油菜花，农家菜吃土鸡、酱瓜。",
+        img: "https://images.unsplash.com/photo-1491002205336-5c3642e1849c"
+    },
+    "渝中区": {
+        intro: "重庆母城，洪崖洞、解放碑坐落，两江交汇，8D魔幻山城核心。",
+        guide: "白天逛解放碑，傍晚洪崖洞看吊脚楼夜景，坐长江索道，吃老火锅、冰粉。",
+        img: "https://images.unsplash.com/photo-1535958636712-012cb01e69d9"
+    },
+    "江北区": {
+        intro: "江北嘴金融新区，观音桥商圈，隔江对望渝中半岛，夜景绝佳。",
+        guide: "观音桥逛街打卡网红地标，江北嘴大剧院看江景，夜市吃江湖菜、烧烤。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "南岸区": {
+        intro: "南山观景城区，南滨路滨江长廊，一棵树观景台俯瞰全城。",
+        guide: "南滨路散步看渝中夜景，南山一棵树观景，下山吃泉水鸡、南山火锅。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "九龙坡区": {
+        intro: "工业文旅城区，黄桷坪涂鸦街、华岩寺，文艺与古寺相融。",
+        guide: "黄桷坪打卡涂鸦墙，川美校园闲逛，吃九龙坡老火锅、梁山鸡。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "沙坪坝区": {
+        intro: "科教文化区，磁器口古镇、重庆大学，千年古镇书香并存。",
+        guide: "磁器口逛老街吃陈麻花，校园打卡，晚上夜市吃酸辣粉、毛血旺。",
+        img: "https://images.unsplash.com/photo-1535572979543-960a8046f5af"
+    },
+    "大渡口区": {
+        intro: "老工业宜居城区，义渡古镇，滨江休闲慢生活片区。",
+        guide: "义渡古镇漫步滨江步道，公园休闲，特色大渡口蹄花、江湖小炒。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "北碚区": {
+        intro: "重庆后花园，缙云山、北温泉，山林温泉避暑胜地。",
+        guide: "缙云山徒步吸氧，北温泉泡汤，农家院吃腊味、北碚河水鱼。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "渝北区": {
+        intro: "北部新城，江北机场、园博园，城市发展新区，公园密布。",
+        guide: "园博园游览，机场周边休闲，打卡网红商圈，特色渝北水煮鱼。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "巴南区": {
+        intro: "重庆南部山水城区，东温泉、木洞古镇，温泉民俗旅游区。",
+        guide: "东温泉泡露天温泉，木洞古镇逛老街，吃巴南烤全羊、河水豆花。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "长寿区": {
+        intro: "长寿湖所在地，湖岛风光，长寿文化康养小城。",
+        guide: "长寿湖游船赏花，采摘沙田柚，特色长寿米粉、湖鱼宴。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "江津区": {
+        intro: "滨江古城，四面山、白沙古镇，米花糖、白酒产地。",
+        guide: "四面山避暑徒步，白沙古镇逛老街区，吃江津米花糖、尖椒鸡。",
+        img: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6"
+    },
+    "合川区": {
+        intro: "三江汇流古城，钓鱼城古战场，南宋历史文化名城。",
+        guide: "钓鱼城游览古战场遗址，三江游船，特色合川桃片、羊肉粉。",
+        img: "https://images.unsplash.com/photo-1549880338-65ddcdfd017b"
+    },
+    "永川区": {
+        intro: "渝西文旅城，乐和乐都、茶山竹海，休闲游乐一体。",
+        guide: "乐和乐都主题乐园游玩，茶山竹海徒步，吃永川星湖鱼、豆豉。",
+        img: "https://images.unsplash.com/photo-1551524559-8af4e6624178"
+    },
+    "南川区": {
+        intro: "金佛山所在地，高山避暑、冰雪观光，喀斯特山水秘境。",
+        guide: "金佛山登山看溶洞，冬季滑雪夏季避暑，特色南川方竹笋、烤黑山羊。",
+        img: "https://images.unsplash.com/photo-1473448912268-2022ce9509fd"
+    },
+    "綦江区": {
+        intro: "渝南边城，古剑山、东溪古镇，山水古镇休闲片区。",
+        guide: "古剑山登山祈福，东溪古镇漫步，特色綦江北渡鱼、赶水米粉。",
+        img: "https://images.unsplash.com/photo-1491002205336-5c3642e1849c"
+    },
+    "大足区": {
+        intro: "世界石刻之都，大足石刻，千年佛教造像文化圣地。",
+        guide: "全天游览大足石刻，参观唐宋摩崖造像，吃大足邮亭鲫鱼、冬菜。",
+        img: "https://images.unsplash.com/photo-1598305364175-103362a4209d"
+    },
+    "璧山区": {
+        intro: "城市湿地公园之城，秀湖公园，生态宜居渝西新城。",
+        guide: "秀湖公园环湖散步，湿地公园露营，特色璧山兔、来凤鱼。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "铜梁区": {
+        intro: "龙灯之乡，安居古城，非遗民俗文化名城。",
+        guide: "安居古城逛明清街巷，观看龙灯非遗表演，特色铜梁泡凤爪、羊肉。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "潼南区": {
+        intro: "陈抟故里，油菜花之乡，大佛石刻，田园风光优美。",
+        guide: "春季万亩油菜花观光，大佛寺参观石刻，特色潼南太安鱼、凉粉。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "荣昌区": {
+        intro: "夏布之乡，安陶古镇，非遗陶器、夏布文化聚集地。",
+        guide: "安陶古镇体验制陶，逛夏布文创馆，吃荣昌卤鹅、黄凉粉。",
+        img: "https://images.unsplash.com/photo-1535572979543-960a8046f5af"
+    },
+    "开州区": {
+        intro: "汉丰湖滨湖新城，三峡库区湖景城市，山水休闲胜地。",
+        guide: "汉丰湖环湖游船，滨湖公园散步，特色开州格格、紫水鸡。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "万州区": {
+        intro: "渝东门户，三峡库区核心，平湖万州，滨江美食老城。",
+        guide: "滨江观景台看平湖夜景，西山老街逛吃，特色万州烤鱼、杂酱面。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "忠县": {
+        intro: "三峡橘城，石宝寨千年塔楼，柑橘种植核心区。",
+        guide: "石宝寨参观临江古塔楼，柑橘园采摘，特色忠县豆腐乳、蒸肉。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "云阳县": {
+        intro: "龙缸地质公园所在地，三峡库区山水秘境，云端廊桥网红打卡。",
+        guide: "龙缸景区走云端廊桥，环湖观光，特色云阳桃片、格格。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "奉节县": {
+        intro: "夔门白帝城，三峡起点，千年诗词文化名城。",
+        guide: "白帝城怀古，夔门观景游船，吃奉节脐橙、腊猪脚。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "巫山县": {
+        intro: "小三峡、神女峰所在地，三峡风光精华，红叶景观闻名。",
+        guide: "小三峡游船游览峡谷，秋季赏巫山红叶，特色巫山烤鱼、翡翠凉粉。",
+        img: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6"
+    },
+    "巫溪县": {
+        intro: "渝东北秘境，红池坝高山草原，原生态山林康养小城。",
+        guide: "红池坝草原露营，灵巫洞观溶洞，特色巫溪烤鱼、高山腊肉。",
+        img: "https://images.unsplash.com/photo-1549880338-65ddcdfd017b"
+    },
+    "城口县": {
+        intro: "渝东北边界小城，大巴山腹地，原生态森林，中药材之乡。",
+        guide: "大巴山徒步观光，采摘中药材，特色城口腊肉、山地土鸡。",
+        img: "https://images.unsplash.com/photo-1551524559-8af4e6624178"
+    },
+    "丰都县": {
+        intro: "鬼文化名城，丰都鬼城，长江三峡人文旅游地标。",
+        guide: "丰都鬼城游览民俗人文景观，江边游船，特色丰都麻辣鸡块。",
+        img: "https://images.unsplash.com/photo-1473448912268-2022ce9509fd"
+    },
+    "垫江县": {
+        intro: "牡丹故里，渝东平原小城，花卉田园风光。",
+        guide: "牡丹园赏花，田园采摘，特色垫江石磨豆花、黄沙羊肉。",
+        img: "https://images.unsplash.com/photo-1491002205336-5c3642e1849c"
+    },
+    "香港岛-中西区": {
+        intro: "港岛核心，中环金融中心、上环老街，中西文化交融商业区。",
+        guide: "中环摩天大楼打卡，上环复古街巷闲逛，吃港式早茶、鱼蛋粉。",
+        img: "https://images.unsplash.com/photo-1573752060001-48e8c12b8862"
+    },
+    "香港岛-湾仔区": {
+        intro: "会展、铜锣湾坐落，港岛繁华商圈，维多利亚港绝佳观景位。",
+        guide: "金紫荆广场打卡，铜锣湾逛街，傍晚海滨看维港夜景，吃咖喱鱼蛋、烧腊。",
+        img: "https://images.unsplash.com/photo-1503220317350-aa077e865a62"
+    },
+    "香港岛-东区": {
+        intro: "港岛东海岸，太古商圈、筲箕湾渔村，滨海休闲生活区。",
+        guide: "西湾河海滨散步，太古广场购物，品尝港式茶餐厅、海鲜粥。",
+        img: "https://images.unsplash.com/photo-1534352768560-431594542954"
+    },
+    "香港岛-南区": {
+        intro: "港岛南部海滩片区，浅水湾、赤柱，海滨度假小镇。",
+        guide: "浅水湾沙滩玩水，赤柱市集逛文艺小店，吃海鲜大排档、菠萝油。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "香港岛-北区": {
+        intro: "半山、太平山片区，太平山顶俯瞰全港，高端住宅山林区。",
+        guide: "太平山缆车登顶看全景，半山步道漫步，山顶餐厅品尝港式甜品。",
+        img: "https://images.unsplash.com/photo-1544551763-46a013bb70d5"
+    },
+    "九龙-油尖旺区": {
+        intro: "旺角、尖沙咀、油麻地，游客核心商圈，夜市美食集中地。",
+        guide: "尖沙咀海滨看维港，旺角夜市逛小吃，吃鸡蛋仔、牛杂、港式奶茶。",
+        img: "https://images.unsplash.com/photo-1535958636712-012cb01e69d9"
+    },
+    "九龙-九龙城区": {
+        intro: "九龙中部，启德邮轮码头、宋皇台，老城市井气息浓厚。",
+        guide: "启德码头滨海散步，宋皇台历史街区，品尝港式烧腊、云吞面。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "九龙-观塘区": {
+        intro: "东九龙商贸区，海滨长廊、APM商圈，工业改造文艺街区。",
+        guide: "观塘海滨步道打卡网红机位，商场逛街，港式茶餐厅遍地。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "九龙-黄大仙区": {
+        intro: "黄大仙祠所在地，祈福圣地，老式公共屋邨市井城区。",
+        guide: "黄大仙祠上香祈福，周边街市逛平价小吃，吃碗仔翅、鱼蛋。",
+        img: "https://images.unsplash.com/photo-1535572979543-960a8046f5af"
+    },
+    "九龙-深水埗区": {
+        intro: "九龙复古老城，跳蚤市场、老式唐楼，平价文创、数码集散地。",
+        guide: "鸭寮街淘数码，福荣街逛布料市集，街边吃鱼蛋、烧卖、肠粉。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "新界-元朗区": {
+        intro: "西北新界水乡，屏山古村，传统港式田园村落。",
+        guide: "屏山文物径参观古祠堂，元朗街市吃驰名老婆饼、生煎鱼蛋。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "新界-屯门区": {
+        intro: "新界西南滨海，屯门沙滩、屯门市中心，近郊休闲片区。",
+        guide: "屯门黄金海岸沙滩游玩，商场购物，港式海鲜大排档。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "新界-荃湾区": {
+        intro: "新界门户，青马大桥、大屿山中转枢纽，商圈发达。",
+        guide: "青马大桥观景，荃湾街市逛吃，中转前往大屿山，吃港式捞面。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "新界-大埔区": {
+        intro: "新界东北山水区，大埔海滨、林村许愿树，田园风光。",
+        guide: "林村许愿树祈福，海滨公园骑行，品尝大埔烧鹅、豆腐花。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "新界-北区": {
+        intro: "香港最北片区，靠近深圳边境，粉岭、上水市井老城。",
+        guide: "上水街市采购港式零食，乡村步道散步，特色客家风味小吃。",
+        img: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6"
+    },
+    "新界-沙田区": {
+        intro: "新界核心新城，沙田马场、城门河，大型商圈聚居区。",
+        guide: "城门河沿岸骑行，马场观光，沙田街市吃沙田鸡粥、鱼蛋。",
+        img: "https://images.unsplash.com/photo-1549880338-65ddcdfd017b"
+    },
+    "新界-西贡区": {
+        intro: "香港后花园，西贡海鲜街、万宜水库，海岛徒步胜地。",
+        guide: "西贡码头出海游海岛，海鲜街吃现捞海产，山野徒步露营。",
+        img: "https://images.unsplash.com/photo-1551524559-8af4e6624178"
+    },
+    "新界-葵青区": {
+        intro: "青衣、葵涌片区，货柜码头，跨海大桥观景绝佳位置。",
+        guide: "青衣海滨看青马大桥日落，商场休闲，平价港式茶餐厅。",
+        img: "https://images.unsplash.com/photo-1473448912268-2022ce9509fd"
+    },
+    "离岛-大屿山": {
+        intro: "香港最大离岛，昂坪大佛、迪士尼，山林海岛一体。",
+        guide: "昂坪缆车看天坛大佛，迪士尼全天游玩，海边吃烧腊、海鲜。",
+        img: "https://images.unsplash.com/photo-1491002205336-5c3642e1849c"
+    },
+    "离岛-长洲": {
+        intro: "小众海岛渔村，沙滩、海鲜市集，慢节奏度假小岛。",
+        guide: "环岛徒步沙滩玩水，市集吃海鲜、鱼蛋，打卡网红海边小店。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "离岛-南丫岛": {
+        intro: "文艺离岛，洋人聚居，山野步道、海滨小店，休闲度假。",
+        guide: "榕树湾逛文艺小店，索罟湾吃海鲜，环岛徒步看海景。",
+        img: "https://images.unsplash.com/photo-1573752060001-48e8c12b8862"
+    },
+    "花地玛堂区": {
+        intro: "澳门北部老城，青洲、黑沙环，市井居民区，平价美食集中。",
+        guide: "黑沙环街市逛本地小吃，老街打卡葡式小店，吃猪扒包、杏仁饼。",
+        img: "https://images.unsplash.com/photo-1534352768560-431594542954"
+    },
+    "圣安多尼堂区": {
+        intro: "澳门老城核心，大三巴、大炮台，世界文化遗产集中片区。",
+        guide: "大三巴牌坊打卡，大炮台俯瞰全城，吃葡式蛋挞、牛杂。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "大堂区": {
+        intro: "澳门政务商业中心，议事亭前地、新马路，葡式风情街巷。",
+        guide: "议事亭前地拍照，新马路手信采购，品尝葡国鸡、马介休。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "望德堂区": {
+        intro: "文艺葡式街区，疯堂斜巷网红打卡，彩色葡式民居。",
+        guide: "疯堂斜巷拍照打卡，文创小店闲逛，下午茶吃葡式甜品。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "风顺堂区": {
+        intro: "西湾滨海片区，主教山小堂，眺望氹仔海景。",
+        guide: "主教山小堂观景，西湾湖散步，傍晚看跨海大桥夜景。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "氹仔岛": {
+        intro: "度假娱乐新区，官也街、各大度假村，葡式复古街巷。",
+        guide: "官也街吃木糠布甸、猪扒包，度假村打卡网红景点，夜游灯光秀。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "路环岛": {
+        intro: "澳门原生态海岛，黑沙海滩，安静渔村，远离闹市。",
+        guide: "黑沙海滩玩水，路环老街吃安德鲁蛋挞，海边漫步放松。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "成都市": {
+        intro: "雪山下的公园城市，这里是美食之都，也是大熊猫的故乡。节奏安逸，烟火气十足。",
+        guide: "夏天成都市区较热，推荐早上去大熊猫繁育研究基地看花花，下午去杜甫草堂喝茶。避暑最佳路线是前往都江堰，感受两千年前水利工程带来的透心凉，晚上去宽窄巷子吃一顿正宗冷锅串串。",
+        img: "https://images.unsplash.com/photo-1598305364175-103362a4209d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+
+    "丹东市": {
+        intro: "中国最大边境城市，鸭绿江畔，抗美援朝英雄城。",
+        guide: "逛鸭绿江断桥，吃海鲜、黄蚬子。",
+        img: "https://images.unsplash.com/photo-1535572979543-960a8046f5af"
+    },
+    "锦州市": {
+        intro: "辽西中心，烧烤之城，山海关要道。",
+        guide: "逛笔架山，吃锦州烧烤、沟帮子熏鸡。",
+        img: "https://images.unsplash.com/photo-1549880338-65ddcdfd017b"
+    },
+    "营口市": {
+        intro: "河海交汇之城，温泉之都，海鲜丰富。",
+        guide: "逛鲅鱼圈，泡温泉，吃海鲜。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "阜新市": {
+        intro: "煤电之城，藏传佛教文化浓厚，草原风光优美。",
+        guide: "逛瑞应寺，吃蒙古馅饼、手把肉。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+"台北市": {
+        intro: "宝岛政治文化中心，现代高楼与百年古巷共生，温泉、山林、夜市一应俱全，浓郁中华人文底蕴。",
+        guide: "白天逛台北故宫看翠玉白菜、毛公鼎，登101俯瞰全城；午后阳明山赏花，傍晚西门町逛夜市，北投泡温泉，必吃大肠包小肠、珍珠奶茶、牛肉面。",
+        img: "https://images.unsplash.com/photo-1508050919630-b135583b29ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "新北市": {
+        intro: "台湾人口第一大城，山海兼具，九份山城、淡水老街、海岸风光齐聚，烟火与秘境并存。",
+        guide: "清晨淡水河畔散步看日落，午后九份山城逛红灯笼老街，傍晚十分寮瀑布踏青，品尝阿给、鱼丸汤、芋圆。",
+        img: "https://images.unsplash.com/photo-1524820197278-540916411e20?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "桃园市": {
+        intro: "宝岛门户空港之城，工业重镇，客家文化浓厚，田园、海岸、山林风光多元。",
+        guide: "大溪老街逛复古木造街屋，龙潭赏客家茶园，观音海岸看落日，品尝客家擂茶、桃园牛肉粉、糯米肠。",
+        img: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "台中市": {
+        intro: "宝岛中部文创之都，平缓宜居，花海湿地、网红村落云集，全台知名夜市聚集地。",
+        guide: "打卡彩虹眷村彩色涂鸦，高美湿地看风车日落，逢甲夜市逛吃全天，必吃大肠包小肠、太阳饼、凤梨酥。",
+        img: "https://images.unsplash.com/photo-1531403500725-594329de98f7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "台南市": {
+        intro: "台湾千年古都，郑成功收复之地，明清古迹遍布，古早味美食发源地，历史底蕴厚重。",
+        guide: "游览赤崁楼、安平古堡，神农街漫步复古街巷，花园夜市打卡，尝担仔面、棺材板、鳝鱼意面、碗粿。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "高雄市": {
+        intro: "南部滨海大港，热带风情浓郁，艺术特区、山海日落兼具，海鲜资源丰富。",
+        guide: "驳二艺术特区文创打卡，西子湾看海港落日，旗津半岛骑行吃海鲜，品尝虱目鱼粥、黑轮、木瓜牛奶。",
+        img: "https://images.unsplash.com/photo-1534352768560-431594542954?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "太原市": {
+        intro: "三晋首府，龙城锦绣，晋文化核心城市，汾河穿城而过，面食与醋香弥漫全城。",
+        guide: "上午游览晋祠感受古建园林，登双塔寺俯瞰城区，傍晚逛食品街，尝太原头脑、过油肉、各种地道面食。",
+        img: "https://images.unsplash.com/photo-1582738411706-bfc8e691d1c2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "大同市": {
+        intro: "北魏古都，塞外佛都，云冈石窟、悬空寺名扬天下，辽金古建保存完好。",
+        guide: "一日打卡云冈石窟，次日前往恒山悬空寺，古城漫步赏古城墙，晚餐吃大同刀削面、黄米凉糕。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "朔州市": {
+        intro: "塞北古城，边关重镇，应县木塔、崇福寺坐落于此，边塞风光厚重雄浑。",
+        guide: "参观应县木塔这座千年古木塔，逛崇福寺辽代大殿，品尝右玉羊肉、莜面窝窝。",
+        img: "https://images.unsplash.com/photo-1549880338-65ddcdfd017b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "忻州市": {
+        intro: "晋北门户，五台山佛教圣地，雁门关边塞雄关，山水古关兼具。",
+        guide: "上山朝拜五台山各大古寺，走雁门关感受边关历史，农家品尝忻州瓦酥、羊杂割。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "阳泉市": {
+        intro: "煤铁之城，娘子关所在地，太行山东麓山城，红色文化底蕴深厚。",
+        guide: "去往娘子关看瀑布古堡，关里关外漫步，平定古镇闲逛，吃平定过油肉、不烂子。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "吕梁市": {
+        intro: "黄河东岸山城，汾酒故乡，黄土高原风光壮美，红色革命老区。",
+        guide: "杏花村寻访汾酒文化，游碛口古镇黄河古码头，尝柳林碗团、孝义火烧。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "晋中市": {
+        intro: "晋商故里，平遥古城、乔家大院聚集地，明清大院文化举世闻名。",
+        guide: "全天逛平遥古城感受晋商繁华，打卡乔家大院、王家大院，晚餐吃平遥牛肉、榆次灌肠。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "长治市": {
+        intro: "太行之巅，上党古城，太行山大峡谷风光秀丽，红色太行根据地。",
+        guide: "穿行太行山大峡谷，游览八泉峡山水，市区逛上党门，品尝壶关羊汤、襄垣揪片。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "晋城市": {
+        intro: "太行明珠，皇城相府、王莽岭所在地，南太行山水秀美，古堡众多。",
+        guide: "登王莽岭看太行云海，逛皇城相府清代官宅，吃高平十大碗、晋城炒凉粉。",
+        img: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "临汾市": {
+        intro: "华夏之根，尧都古城，壶口瀑布坐落境内，黄河文化发源地。",
+        guide: "奔赴壶口瀑布观赏黄河奔腾，尧庙寻根祭祖，尝牛肉丸子面、洪洞蒸饭。",
+        img: "https://images.unsplash.com/photo-1473448912268-2022ce9509fd?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "运城市": {
+        intro: "中华盐池，关公故里，解州关帝庙、永乐壁画，黄河金三角文化名城。",
+        guide: "参拜解州关帝庙，游览永乐宫看元代壁画，盐湖散步，吃闻喜煮饼、稷山麻花。",
+        img: "https://images.unsplash.com/photo-1491002205336-5c3642e1849c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    "辽阳市": {
+        intro: "东北最古老城市，历史文化名城，曹雪芹故里。",
+        guide: "逛广佑寺，吃老汤干豆腐、杀猪菜。",
+        img: "https://images.unsplash.com/photo-1551524559-8af4e6624178"
+    },
+    "盘锦市": {
+        intro: "湿地之都，河蟹之城，红海滩天下奇观。",
+        guide: "逛红海滩，吃稻田河蟹、大米。",
+        img: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6"
+    },
+    "铁岭市": {
+        intro: "小品之乡，辽北水城，生态宜居。",
+        guide: "逛莲花湖湿地，吃牛肉火勺、炖大鹅。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "朝阳市": {
+        intro: "三燕古都，化石之城，佛教圣地。",
+        guide: "逛凤凰山，吃碗坨、豆腐脑。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "葫芦岛市": {
+        intro: "渤海滨城，关外第一市，海滨度假胜地。",
+        guide: "逛兴城古城、海滨，吃海鲜、烧烤。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+
+    // 山东省
+    "济南市": {
+        intro: "泉城，七十二名泉遍布，山水秀美，齐鲁文化浓郁。",
+        guide: "逛趵突泉、大明湖，吃油旋、把子肉。",
+        img: "https://images.unsplash.com/photo-1557164153-966665ee2192"
+    },
+    "青岛市": {
+        intro: "东方瑞士，红瓦绿树，碧海蓝天，啤酒飘香。",
+        guide: "逛栈桥、八大关，夏季玩水，喝啤酒、吃蛤蜊。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "淄博市": {
+        intro: "齐国故都，烧烤之城，陶瓷名城，历史厚重。",
+        guide: "逛周村古商城，吃淄博烧烤、酥锅。",
+        img: "https://images.unsplash.com/photo-1583247761013-064c2bed85d8"
+    },
+    "枣庄市": {
+        intro: "运河古城，铁道游击队故乡，煤炭之城。",
+        guide: "逛台儿庄古城，吃辣子鸡、羊肉汤。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "东营市": {
+        intro: "黄河入海口，石油之城，湿地生态之城。",
+        guide: "逛黄河口湿地，吃大闸蟹、海鲜。",
+        img: "https://images.unsplash.com/photo-1551524559-8af4e6624178"
+    },
+    "烟台市": {
+        intro: "仙境海岸，葡萄酒城，海鲜鲜美，气候舒适。",
+        guide: "逛蓬莱阁、长岛，吃海鲜、樱桃。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "潍坊市": {
+        intro: "风筝之都，蔬菜之乡，齐鲁文化重镇。",
+        guide: "逛十笏园，吃朝天锅、肉火烧。",
+        img: "https://images.unsplash.com/photo-1549880338-65ddcdfd017b"
+    },
+    "济宁市": {
+        intro: "孔孟之乡，运河之都，儒家文化发源地。",
+        guide: "逛三孔、微山湖，吃甏肉干饭、鱼汤。",
+        img: "https://images.unsplash.com/photo-1550340499-a6c608665f34"
+    },
+    "泰安市": {
+        intro: "泰山之城，五岳之首所在地，历史文化名城。",
+        guide: "登泰山，吃泰山炒鸡、豆腐宴。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "威海市": {
+        intro: "最干净海滨城市，宜居之城，甲午战争故地。",
+        guide: "逛刘公岛、海滨，吃海鲜、无花果。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "日照市": {
+        intro: "水上运动之都，海滨小城，日出先照之地。",
+        guide: "逛万平口、海滩，吃海鲜、煎饼。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "临沂市": {
+        intro: "物流之都，红色沂蒙，山水之城，历史厚重。",
+        guide: "逛蒙山、王羲之故居，吃糁、炒鸡。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "德州市": {
+        intro: "九达天衢，神京门户，德州扒鸡闻名全国。",
+        guide: "逛董子文化街，吃扒鸡、驴肉。",
+        img: "https://images.unsplash.com/photo-1583247761013-064c2bed85d8"
+    },
+    "聊城市": {
+        intro: "江北水城，运河古都，阿胶之乡。",
+        guide: "逛东昌湖，吃阿胶、呱嗒。",
+        img: "https://images.unsplash.com/photo-1550340499-a6c608665f34"
+    },
+    "滨州市": {
+        intro: "黄河之城，纺织之都，生态宜居。",
+        guide: "逛鹤伴山，吃锅子饼、芝麻酥糖。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "菏泽市": {
+        intro: "牡丹之都，武术之乡，戏曲之乡。",
+        guide: "赏牡丹，吃羊肉汤、水煎包。",
+        img: "https://images.unsplash.com/photo-1517483000871-1dbf64a6e1c6"
+    },
+
+    // 江苏省
+    "南京市": {
+        intro: "六朝古都，金陵风华，梧桐满城，历史底蕴深厚。",
+        guide: "逛中山陵、夫子庙，吃盐水鸭、鸭血粉丝汤。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "无锡市": {
+        intro: "太湖明珠，江南水城，紫砂之乡，温婉雅致。",
+        guide: "逛太湖、灵山，吃酱排骨、小笼包。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "徐州市": {
+        intro: "五省通衢，帝王之乡，汉文化发源地。",
+        guide: "逛汉墓、云龙山，吃地锅鸡、羊肉汤。",
+        img: "https://images.unsplash.com/photo-1550340499-a6c608665f34"
+    },
+    "常州市": {
+        intro: "江南名城，恐龙园之都，运河穿城。",
+        guide: "逛恐龙园、天宁寺，吃银丝面、大麻糕。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "苏州市": {
+        intro: "园林之都，东方水城，江南美学巅峰。",
+        guide: "逛拙政园、平江路，吃松鼠桂鱼、蟹黄汤包。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "南通市": {
+        intro: "江海门户，建筑之乡，教育之乡。",
+        guide: "逛狼山，吃西亭脆饼、河豚。",
+        img: "https://images.unsplash.com/photo-1544551763-46a013bb70d5"
+    },
+    "连云港市": {
+        intro: "山海之城，花果山所在地，亚欧大陆桥东桥头堡。",
+        guide: "登花果山、连岛，吃海鲜、凉粉。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "淮安市": {
+        intro: "运河之都，总理故乡，美食之城。",
+        guide: "逛周恩来纪念馆，吃盱眙龙虾、文楼汤包。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "盐城市": {
+        intro: "丹顶鹤、麋鹿故乡，湿地之都，滩涂辽阔。",
+        guide: "逛黄海湿地，吃醉蟹、鱼汤面。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "扬州市": {
+        intro: "烟花三月下扬州，淮扬菜发源地，园林秀美。",
+        guide: "逛瘦西湖、个园，吃扬州早茶、狮子头。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "镇江市": {
+        intro: "城市山林，香醋之城，长江渡口名城。",
+        guide: "逛金山寺，吃锅盖面、肴肉。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "泰州市": {
+        intro: "祥泰之州，京剧大师故乡，水城慢生活。",
+        guide: "逛溱湖，吃蟹黄汤包、麻糕。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "宿迁市": {
+        intro: "酒都，项王故里，生态水城。",
+        guide: "逛项王故里，吃车轮饼、黄狗猪头肉。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+
+    // 浙江省
+    "杭州市": {
+        intro: "人间天堂，西湖美景甲天下，茶香满城。",
+        guide: "逛西湖、灵隐寺，吃东坡肉、龙井虾仁。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "宁波市": {
+        intro: "港口名城，海鲜之都，书香文化浓厚。",
+        guide: "逛天一阁、普陀山，吃汤圆、海鲜。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "温州市": {
+        intro: "民营经济之都，山水之城，海鲜美食遍地。",
+        guide: "逛雁荡山、楠溪江，吃糯米饭、鱼圆。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "嘉兴市": {
+        intro: "江南水乡，南湖红船所在地，粽子闻名全国。",
+        guide: "逛乌镇、西塘，吃粽子、南湖菱。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "湖州市": {
+        intro: "丝绸之府，鱼米之乡，太湖明珠。",
+        guide: "逛南浔古镇，吃千张包、定胜糕。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "绍兴市": {
+        intro: "名士之乡，鲁迅故里，黄酒之城。",
+        guide: "逛鲁迅故里，吃臭豆腐、黄酒棒冰。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "金华市": {
+        intro: "火腿之城，小商品之都，山水秀美。",
+        guide: "逛横店、双龙洞，吃火腿、酥饼。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "衢州市": {
+        intro: "四省通衢，南孔圣地，生态宜居之城。",
+        guide: "逛江郎山，吃烤饼、三头一掌。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "舟山市": {
+        intro: "千岛之城，东海渔场，海鲜极鲜。",
+        guide: "逛普陀山、朱家尖，吃海鲜、带鱼。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "台州市": {
+        intro: "山海之城，民营经济发达，海鲜鲜美。",
+        guide: "逛天台山、神仙居，吃食饼筒、海鲜。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "丽水市": {
+        intro: "浙江绿谷，天然氧吧，山水秘境。",
+        guide: "逛古堰画乡，吃山粉饺、笋宴。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+
+    // 安徽省
+    "合肥市": {
+        intro: "科创之都，三国故地，包公故里，大湖名城。",
+        guide: "逛巢湖、包公祠，吃小龙虾、鸭油烧饼。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "芜湖市": {
+        intro: "长江巨埠，皖之中坚，半城山半城水。",
+        guide: "逛方特、鸠兹古镇，吃小笼包、渣肉蒸饭。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "蚌埠市": {
+        intro: "淮河明珠，珍珠之城，交通枢纽。",
+        guide: "逛龙子湖，吃烧饼夹里脊、小龙虾。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "淮南市": {
+        intro: "豆腐之城，能源之都，淮河岸边名城。",
+        guide: "逛八公山，吃豆腐宴、牛肉汤。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "马鞍山市": {
+        intro: "钢城，诗城，长江港口名城。",
+        guide: "逛采石矶，吃茶干、当涂大肉面。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "淮北市": {
+        intro: "运河故里，能源之都，中国酒乡。",
+        guide: "逛相山，吃烫面、娃娃鱼。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "铜陵市": {
+        intro: "铜都，生态江城，山水宜居。",
+        guide: "逛天井湖，吃铜陵白姜、茶干。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "安庆市": {
+        intro: "黄梅戏之乡，古皖之源，长江咽喉。",
+        guide: "逛天柱山，吃江毛水饺、米饺。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "黄山市": {
+        intro: "黄山之城，徽文化发源地，徽州古城秀美。",
+        guide: "登黄山、逛宏村西递，吃臭鳜鱼、毛豆腐。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "滁州市": {
+        intro: "琅琊山之城，家电之都，历史文化名城。",
+        guide: "逛琅琊山，吃酥糖、卤鹅。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "阜阳市": {
+        intro: "百亿粮仓，皖北重镇，人口大城。",
+        guide: "逛颍州西湖，吃格拉条、枕头馍。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "宿州市": {
+        intro: "中国酥梨之乡，书法名城，皖北门户。",
+        guide: "逛皇藏峪，吃符离集烧鸡、辣汤。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "六安市": {
+        intro: "白色之城，将军故里，生态山水之城。",
+        guide: "逛天堂寨，吃吊锅、卤菜。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "亳州市": {
+        intro: "药都，曹魏故里，白酒之乡。",
+        guide: "逛花戏楼，吃牛肉馍、嘛糊。",
+        img: "https://images.unsplash.com/photo-1550340499-a6c608665f34"
+    },
+    "池州市": {
+        intro: "生态之城，九华山所在地，佛教圣地。",
+        guide: "登九华山，吃小粑、秋浦河鱼。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "宣城市": {
+        intro: "文房四宝之乡，山水秀美，江南名城。",
+        guide: "逛敬亭山，吃水阳三宝、板栗。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+
+    // 福建省
+    "福州市": {
+        intro: "榕城，温泉之都，三坊七巷藏着千年文脉。",
+        guide: "逛三坊七巷、鼓山，吃鱼丸、肉燕。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "厦门市": {
+        intro: "海上花园，文艺鹭岛，鼓浪屿浪漫至极。",
+        guide: "逛鼓浪屿、环岛路，吃沙茶面、海蛎煎。",
+        img: "https://images.unsplash.com/photo-1515488764276-beab7607c9e4"
+    },
+    "莆田市": {
+        intro: "妈祖故乡，文献名邦，海滨邹鲁。",
+        guide: "逛湄洲岛，吃卤面、兴化米粉。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "三明市": {
+        intro: "绿色宝库，客家祖地，山水秘境。",
+        guide: "逛泰宁大金湖，吃沙县小吃、熏鸭。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "泉州市": {
+        intro: "东亚文化之都，海上丝绸之路起点，古城烟火浓郁。",
+        guide: "逛西街、开元寺，吃肉粽、面线糊。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "漳州市": {
+        intro: "花果之城，水仙花之乡，闽南文化浓厚。",
+        guide: "逛南靖土楼，吃卤面、猫仔粥。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "南平市": {
+        intro: "武夷山水之城，白茶之乡，生态天堂。",
+        guide: "登武夷山，吃熏鹅、笋饼。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "龙岩市": {
+        intro: "客家祖地，红色圣地，古田会议所在地。",
+        guide: "逛古田、土楼，吃簸箕粄、牛杂。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "宁德市": {
+        intro: "山海画廊，新能源之都，大黄鱼之乡。",
+        guide: "逛太姥山、白水洋，吃海鲜、肉丸。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+
+    // 江西省
+    "南昌市": {
+        intro: "英雄城，八一军旗升起地，赣文化中心。",
+        guide: "逛滕王阁、八一广场，吃瓦罐汤、炒粉。",
+        img: "https://images.unsplash.com/photo-1550340499-a6c608665f34"
+    },
+    "景德镇市": {
+        intro: "中国瓷都，千年陶瓷文化圣地。",
+        guide: "逛古窑、陶溪川，吃冷粉、饺子粑。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "萍乡市": {
+        intro: "赣西明珠，工业之城，红色安源。",
+        guide: "逛武功山，吃炒粉、擦菜。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "九江市": {
+        intro: "三江之口，庐山之城，鱼米之乡。",
+        guide: "登庐山、逛鄱阳湖，吃萝卜饼、鱼块。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "新余市": {
+        intro: "钢城，新能源之都，赣西宜居小城。",
+        guide: "逛仙女湖，吃扎粉、炒腊肉。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "鹰潭市": {
+        intro: "道都，铜都，龙虎山所在地。",
+        guide: "逛龙虎山，吃天师板栗、腌菜糕。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "赣州市": {
+        intro: "宋城，客家摇篮，红色故都。",
+        guide: "逛郁孤台、通天岩，吃米粉鱼、酿豆腐。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "吉安市": {
+        intro: "革命摇篮，井冈山所在地，文章节义之邦。",
+        guide: "逛井冈山，吃炒粉、艾米果。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "宜春市": {
+        intro: "月亮之都，温泉之城，生态宜居。",
+        guide: "逛明月山，吃扎粉、土扎粉。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "抚州市": {
+        intro: "才子之乡，戏曲之都，文化名城。",
+        guide: "逛名人园，吃泡粉、菜梗。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "上饶市": {
+        intro: "豫章第一门户，三清山、婺源所在地。",
+        guide: "逛婺源、三清山，吃米粉、汽糕。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+
+    // 河南省
+    "郑州市": {
+        intro: "商都绿城，中原腹地，铁路心脏，少林功夫名扬天下。",
+        guide: "逛河南博物院、少林寺，吃烩面、胡辣汤。",
+        img: "https://images.unsplash.com/photo-1617524872775-c1f2c8f3c27b"
+    },
+    "开封市": {
+        intro: "北宋都城，汴梁风华，夜市美食遍地。",
+        guide: "逛清明上河园，吃灌汤包、桶子鸡。",
+        img: "https://images.unsplash.com/photo-1550340499-a6c608665f34"
+    },
+    "洛阳市": {
+        intro: "十三朝古都，牡丹花城，龙门石窟震撼世界。",
+        guide: "逛龙门石窟、白马寺，吃水席、牛肉汤。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "平顶山市": {
+        intro: "煤城，尧山所在地，中原工业名城。",
+        guide: "逛尧山，吃饸饹面、揽锅菜。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "安阳市": {
+        intro: "殷墟之都，文字发源地，甲骨文故乡。",
+        guide: "逛殷墟、红旗渠，吃扁粉菜、烧麦。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "鹤壁市": {
+        intro: "淇水河畔，诗经文化名城，生态宜居。",
+        guide: "逛云梦山，吃缠丝鸭蛋、饸饹面。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "新乡市": {
+        intro: "牧野之城，太行明珠，工业与旅游并重。",
+        guide: "逛万仙山，吃红焖羊肉、烩面。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "焦作市": {
+        intro: "太极故里，云台山所在地，山水名城。",
+        guide: "逛云台山，吃铁棍山药、闹汤驴肉。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "濮阳市": {
+        intro: "中华龙都，石油之城，杂技之乡。",
+        guide: "逛濮上园，吃壮馍、裹凉皮。",
+        img: "https://images.unsplash.com/photo-1551524559-8af4e6624178"
+    },
+    "许昌市": {
+        intro: "曹魏故都，烟草之城，花卉之都。",
+        guide: "逛曹丞相府，吃烩面、腐竹。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "漯河市": {
+        intro: "食品之都，双汇之城，交通枢纽。",
+        guide: "逛沙澧河，吃热干面、麻花。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "三门峡市": {
+        intro: "天鹅之城，黄河明珠，函谷关所在地。",
+        guide: "逛天鹅湖、函谷关，吃羊肉汤、甑糕。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "南阳市": {
+        intro: "南都帝乡，仲景故里，玉都，面积最大地级市。",
+        guide: "逛卧龙岗，吃板面、烩面。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "商丘市": {
+        intro: "三商之源，华商之都，豫东门户。",
+        guide: "逛火神台，吃水煎包、烩面。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "信阳市": {
+        intro: "北国江南，江南北国，毛尖茶之乡。",
+        guide: "逛鸡公山，吃热干面、烤鱼。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "周口市": {
+        intro: "羲皇故都，老子故里，农业大市。",
+        guide: "逛太昊陵，吃胡辣汤、烩面。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "驻马店市": {
+        intro: "豫州腹地，天下之中，梁祝故里。",
+        guide: "逛嵖岈山，吃胡辣汤、烩面。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+
+    // 湖北省
+    "武汉市": {
+        intro: "江城九省通衢，大江大湖大武汉，樱花浪漫，热干面飘香。",
+        guide: "逛黄鹤楼、东湖，吃热干面、鸭脖、小龙虾。",
+        img: "https://images.unsplash.com/photo-1580770513351-011d79282317"
+    },
+    "黄石市": {
+        intro: "矿冶之城，山水名城，青铜古都。",
+        guide: "逛仙岛湖，吃土豆片、炸炸。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "十堰市": {
+        intro: "汽车城，武当山所在地，道教圣地。",
+        guide: "逛武当山，吃三合汤、面窝。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "宜昌市": {
+        intro: "三峡名城，水电之都，山水绝美。",
+        guide: "逛三峡大坝、清江，吃萝卜饺子、凉虾。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "襄阳市": {
+        intro: "华夏第一城池，三国文化名城，牛肉面飘香。",
+        guide: "逛古隆中，吃牛肉面、孔明菜。",
+        img: "https://images.unsplash.com/photo-1550340499-a6c608665f34"
+    },
+    "鄂州市": {
+        intro: "吴王古都，武昌鱼之乡，滨江小城。",
+        guide: "逛莲花山，吃武昌鱼、东坡饼。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "荆门市": {
+        intro: "荆楚门户，石油之城，生态宜居。",
+        guide: "逛明显陵，吃矮子饼、蟠龙菜。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "孝感市": {
+        intro: "孝文化之乡，麻糖之城，武汉后花园。",
+        guide: "逛双峰山，吃麻糖、米酒。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "荆州市": {
+        intro: "楚国故都，三国名城，鱼米之乡。",
+        guide: "逛荆州古城，吃鱼糕、早堂面。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "黄冈市": {
+        intro: "教育之乡，名人故里，红色圣地。",
+        guide: "逛东坡赤壁，吃黄州烧梅、鱼面。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "咸宁市": {
+        intro: "桂花之城，温泉之都，武汉南大门。",
+        guide: "逛九宫山，吃桂花糕、通山包坨。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "随州市": {
+        intro: "编钟之乡，炎帝故里，神农名城。",
+        guide: "逛炎帝故里，吃广水滑肉、拐子饭。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "恩施土家族苗族自治州": {
+        intro: "鄂西林海，世界硒都，土家族风情浓郁。",
+        guide: "逛大峡谷、土司城，吃合渣、腊肉。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+
+    // 湖南省
+    "长沙市": {
+        intro: "星城楚汉名城，娱乐之都，湘菜火辣，橘子洲头风景如画。",
+        guide: "逛橘子洲、岳麓山，吃臭豆腐、小龙虾、茶颜悦色。",
+        img: "https://images.unsplash.com/photo-1570939859531-441ed12b337a"
+    },
+    "株洲市": {
+        intro: "电力机车之都，工业新城，红色故土。",
+        guide: "逛炎帝广场，吃攸县香干、米粉。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "湘潭市": {
+        intro: "伟人故里，莲城，红色文化名城。",
+        guide: "逛韶山，吃臭豆腐、米粉。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "衡阳市": {
+        intro: "雁城，衡山所在地，湖南老牌工业城。",
+        guide: "登南岳衡山，吃鱼粉、酥薄月饼。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "邵阳市": {
+        intro: "湘中明珠，资江之城，历史文化名城。",
+        guide: "逛崀山，吃米粉、猪血丸子。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "岳阳市": {
+        intro: "洞庭天下水，岳阳天下楼，鱼米之乡。",
+        guide: "逛岳阳楼、洞庭湖，吃洞庭鱼、虾饼。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "常德市": {
+        intro: "桃花源之城，湘西北门户，米粉之城。",
+        guide: "逛桃花源，吃米粉、酱板鸭。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "张家界市": {
+        intro: "奇峰三千，秀水八百，世界级山水旅游名城。",
+        guide: "逛天门山、森林公园，吃三下锅、腊肉。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "益阳市": {
+        intro: "羽毛球之乡，竹子之城，洞庭湖畔名城。",
+        guide: "逛桃花江，吃擂茶、麻辣烫。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "郴州市": {
+        intro: "福城，湘南明珠，山水秀美。",
+        guide: "逛东江湖，吃鱼粉、坛子肉。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "永州市": {
+        intro: "潇湘文化发源地，柳宗元文化名城。",
+        guide: "逛柳子庙，吃血鸭、米粉。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "怀化市": {
+        intro: "鹤城，火车拖来的城市，湘西咽喉。",
+        guide: "逛黔阳古城，吃酸萝卜、米粉。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "娄底市": {
+        intro: "湘中明珠，蚩尤故里，钢铁之城。",
+        guide: "逛紫鹊界，吃三合汤、米粉。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "湘西土家族苗族自治州": {
+        intro: "神秘湘西，凤凰古城所在地，苗族风情浓郁。",
+        guide: "逛凤凰古城、芙蓉镇，吃腊肉、米豆腐。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+
+    // 广东省
+    "广州市": {
+        intro: "羊城花城，千年商都，早茶精髓，岭南文化中心，美食天堂。",
+        guide: "逛小蛮腰、沙面岛，喝早茶，吃烧腊、肠粉。",
+        img: "https://images.unsplash.com/photo-1557164153-966665ee2192"
+    },
+    "韶关市": {
+        intro: "粤北门户，丹霞山所在地，山水名城。",
+        guide: "逛丹霞山，吃山坑螺、米粉。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "深圳市": {
+        intro: "创新之都，滨海新城，年轻活力，科技感拉满。",
+        guide: "逛深圳湾、市民中心，吃粤式海鲜、潮汕美食。",
+        img: "https://images.unsplash.com/photo-1557164153-966665ee2192"
+    },
+    "珠海市": {
+        intro: "浪漫之城，百岛之市，宜居海滨城市。",
+        guide: "逛情侣路、横琴，吃海鲜、蛋挞。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "汕头市": {
+        intro: "潮汕美食之都，侨乡，海滨邹鲁。",
+        guide: "逛小公园，吃牛肉丸、卤鹅。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "佛山市": {
+        intro: "武术之城，陶瓷之都，美食遍地。",
+        guide: "逛祖庙、清晖园，吃双皮奶、鱼皮。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "江门市": {
+        intro: "中国第一侨乡，碉楼之乡，海滨名城。",
+        guide: "逛开平碉楼，吃黄鳝饭、古井烧鹅。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "湛江市": {
+        intro: "南海明珠，海鲜之都，热带海滨城市。",
+        guide: "逛湖光岩，吃生蚝、海鲜。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "茂名市": {
+        intro: "南方油城，水果之城，海鲜肥美。",
+        guide: "逛放鸡岛，吃荔枝、海鲜。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "肇庆市": {
+        intro: "端砚之都，七星岩所在地，岭南名郡。",
+        guide: "逛七星岩、鼎湖山，吃裹蒸粽、河鲜。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "惠州市": {
+        intro: "岭南名郡，鹅城，滨海宜居之城。",
+        guide: "逛西湖、双月湾，吃客家菜、海鲜。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "梅州市": {
+        intro: "世界客都，客家文化中心，金柚之乡。",
+        guide: "逛客天下，吃盐焗鸡、酿豆腐。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "汕尾市": {
+        intro: "南海明珠，海鲜之城，潮汕文化浓厚。",
+        guide: "逛红海湾，吃海鲜、菜茶。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "河源市": {
+        intro: "客家古邑，万绿之源，生态宜居。",
+        guide: "逛万绿湖，吃客家菜、五指毛桃鸡。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "阳江市": {
+        intro: "风筝之乡，刀剪之都，海陵岛度假胜地。",
+        guide: "逛海陵岛，吃海鲜、猪肠碌。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "清远市": {
+        intro: "中国温泉之乡，珠三角后花园，山水秀美。",
+        guide: "逛连州地下河，吃清远鸡、河鲜。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "东莞市": {
+        intro: "世界工厂，篮球之城，岭南古邑。",
+        guide: "逛可园，吃烧鹅、荔枝。",
+        img: "https://images.unsplash.com/photo-1550340499-a6c608665f34"
+    },
+    "中山市": {
+        intro: "伟人故里，宜居之城，灯饰之都。",
+        guide: "逛孙中山故居，吃石岐乳鸽、脆肉鲩。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "潮州市": {
+        intro: "潮汕文化发源地，古城美食之都。",
+        guide: "逛广济桥，吃牛肉火锅、腐乳鸡翅。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "揭阳市": {
+        intro: "岭南水城，玉器之城，五金之都。",
+        guide: "逛进贤门，吃乒乓粿、卤鹅。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "云浮市": {
+        intro: "石都，禅都，生态宜居之城。",
+        guide: "逛国恩寺，吃裹蒸粽、山坑螺。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+
+    // 海南省
+    "海口市": {
+        intro: "椰城，海南省会，滨海休闲，骑楼老街充满南洋风情。",
+        guide: "逛骑楼老街、假日海滩，吃清补凉、海南粉。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "三亚市": {
+        intro: "东方夏威夷，热带海滨度假天堂，沙滩碧海绝美。",
+        guide: "逛亚龙湾、蜈支洲岛，吃海鲜、椰子鸡。",
+        img: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4"
+    },
+    "三沙市": {
+        intro: "南海明珠，中国最南端城市，海岛秘境。",
+        guide: "登永兴岛，吃海鲜、椰子。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "儋州市": {
+        intro: "海南西部中心，东坡文化名城，生态宜居。",
+        guide: "逛东坡书院，吃米烂、洛基粽。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "五指山市": {
+        intro: "翡翠山城，海南屋脊，黎族风情浓郁。",
+        guide: "逛五指山，吃竹筒饭、山兰酒。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "琼海市": {
+        intro: "博鳌之乡，海南东部水城，侨乡。",
+        guide: "逛博鳌、万泉河，吃加积鸭、凉面。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "文昌市": {
+        intro: "椰子之乡，航天之城，侨乡。",
+        guide: "逛东郊椰林，吃文昌鸡、抱罗粉。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "万宁市": {
+        intro: "海南冲浪之都，咖啡之乡，滨海秀美。",
+        guide: "逛石梅湾，吃和乐蟹、咖啡。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "东方市": {
+        intro: "海南西部工业之城，花梨之乡。",
+        guide: "逛鱼鳞洲，吃烤乳猪、海鲜。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "定安县": {
+        intro: "琼剧之乡，美食之城，海南中部宜居城。",
+        guide: "逛南丽湖，吃定安粽子、牛腩饭。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "屯昌县": {
+        intro: "海南中部商城，橡胶之乡。",
+        guide: "逛枫木鹿场，吃屯昌腌粉、香草鸭。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "澄迈县": {
+        intro: "世界长寿之乡，咖啡之乡，生态宜居。",
+        guide: "逛福山咖啡镇，吃福橙、烤乳猪。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "临高县": {
+        intro: "艺术之乡，渔业之城，海南西北部。",
+        guide: "逛临高角，吃临高烤乳猪、韭菜饼。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "白沙黎族自治县": {
+        intro: "山兰之城，黎族风情，生态秘境。",
+        guide: "逛霸王岭，吃山兰饭、竹筒饭。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "昌江黎族自治县": {
+        intro: "芒果之乡，木棉之城，海南西部。",
+        guide: "逛棋子湾，吃芒果、海鲜。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "乐东黎族自治县": {
+        intro: "热带瓜果之乡，海南西南部。",
+        guide: "逛尖峰岭，吃芒果、哈密瓜。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "陵水黎族自治县": {
+        intro: "珍珠海岸，疍家风情，旅游胜地。",
+        guide: "逛分界洲岛，吃海鲜、疍家粥。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "保亭黎族苗族自治县": {
+        intro: "雨林温泉之城，黎苗风情浓郁。",
+        guide: "逛呀诺达，吃竹筒饭、山兰酒。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "琼中黎族苗族自治县": {
+        intro: "海南之心，绿橙之乡，生态秘境。",
+        guide: "逛百花岭，吃绿橙、山兰饭。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+
+    // 四川省
+    "成都市": {
+        intro: "雪山下的公园城市，这里是美食之都，也是大熊猫的故乡。节奏安逸，烟火气十足。",
+        guide: "早上去大熊猫基地看花花，下午去杜甫草堂喝茶，晚上吃冷锅串串。",
+        img: "https://images.unsplash.com/photo-1598305364175-103362a4209d"
+    },
+    "自贡市": {
+        intro: "恐龙之乡，盐都，美食之城，冷吃兔闻名全国。",
+        guide: "逛恐龙博物馆，吃冷吃兔、火边子牛肉。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "攀枝花市": {
+        intro: "阳光花城，钒钛之都，热带水果之城。",
+        guide: "逛二滩，吃芒果、爬沙虫。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "泸州市": {
+        intro: "酒城，长江上游重镇，美食之城。",
+        guide: "逛老窖景区，吃泸州烤鱼、豆花。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "德阳市": {
+        intro: "重装之都，三星堆所在地，古蜀文明圣地。",
+        guide: "逛三星堆，吃干锅、米粉。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "绵阳市": {
+        intro: "科技城，李白故里，四川第二大城市。",
+        guide: "逛李白故居，吃米粉、冷沾沾。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "广元市": {
+        intro: "女皇故里，川北门户，蜀道重镇。",
+        guide: "逛剑门关，吃蒸凉面、豆腐。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "遂宁市": {
+        intro: "观音故里，水都，休闲宜居之城。",
+        guide: "逛灵泉寺，吃冲、豆腐干。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "内江市": {
+        intro: "甜城，蔗糖之乡，川南枢纽。",
+        guide: "逛张大千纪念馆，吃牛肉面、兔儿面。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "乐山市": {
+        intro: "大佛之城，美食之城，山水秀美。",
+        guide: "逛乐山大佛、峨眉山，吃钵钵鸡、跷脚牛肉。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "南充市": {
+        intro: "川北重镇，三国文化名城，果城。",
+        guide: "逛阆中古城，吃锅盔凉粉、米粉。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "眉山市": {
+        intro: "东坡故里，竹编之城，成都后花园。",
+        guide: "逛三苏祠，吃东坡肉、甜皮鸭。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "宜宾市": {
+        intro: "酒都，万里长江第一城，燃面之城。",
+        guide: "逛蜀南竹海，吃燃面、把把烧。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "广安市": {
+        intro: "伟人故里，红色之城，川东门户。",
+        guide: "逛邓小平故里，吃盐皮蛋、米粉。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "达州市": {
+        intro: "巴人故里，川东门户，气都。",
+        guide: "逛八台山，吃灯影牛肉、大竹面。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "雅安市": {
+        intro: "熊猫故乡，雨城，川藏门户。",
+        guide: "逛碧峰峡，吃雅鱼、挞挞面。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "巴中市": {
+        intro: "红色巴中，川陕苏区首府，生态秘境。",
+        guide: "逛光雾山，吃油茶、提糖麻饼。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "资阳市": {
+        intro: "柠檬之乡，蜀人原乡，成都东大门。",
+        guide: "逛安岳石刻，吃柠檬、伤心凉粉。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "阿坝藏族羌族自治州": {
+        intro: "川西秘境，九寨沟、黄龙所在地，藏族羌族风情浓郁。",
+        guide: "逛九寨沟、黄龙，吃牦牛肉、酥油茶。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "甘孜藏族自治州": {
+        intro: "香格里拉之魂，稻城亚丁所在地，雪域高原秘境。",
+        guide: "逛稻城亚丁、理塘，吃牦牛肉、糌粑。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+
+    // 贵州省
+    "贵阳市": {
+        intro: "中国避暑之都，林城，气候凉爽，酸辣美食遍地。",
+        guide: "逛甲秀楼、黔灵山，吃酸汤鱼、丝娃娃。",
+        img: "https://images.unsplash.com/photo-1605216711264-57d6e608a815"
+    },
+    "六盘水市": {
+        intro: "中国凉都，夏季均温19度，避暑天堂。",
+        guide: "逛乌蒙大草原，吃羊肉粉、烙锅。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "遵义市": {
+        intro: "转折之城，酒都，红色文化圣地。",
+        guide: "逛遵义会址，吃羊肉粉、豆花面。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "安顺市": {
+        intro: "瀑布之城，黄果树所在地，喀斯特地貌博物馆。",
+        guide: "逛黄果树、龙宫，吃裹卷、花江狗肉。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "毕节市": {
+        intro: "洞天湖地，花海鹤乡，贵州西北部。",
+        guide: "逛百里杜鹃，吃荞酥、臭豆腐。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "铜仁市": {
+        intro: "梵净山之城，黔东门户，佛教圣地。",
+        guide: "逛梵净山，吃锅巴粉、米豆腐。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "黔西南布依族苗族自治州": {
+        intro: "山水秘境，万峰林所在地，布依族风情浓郁。",
+        guide: "逛万峰林、马岭河，吃鸡肉汤圆、刷把头。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "黔东南苗族侗族自治州": {
+        intro: "苗侗文化圣地，千户苗寨、肇兴侗寨所在地。",
+        guide: "逛千户苗寨，吃酸汤鱼、长桌宴。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "黔南布依族苗族自治州": {
+        intro: "喀斯特秘境，荔波小七孔所在地，生态秀美。",
+        guide: "逛小七孔、茂兰，吃酸汤、盐酸菜。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+
+    // 云南省
+    "昆明市": {
+        intro: "春城花都，四季如春，鲜花常年不谢，民族风情浓郁。",
+        guide: "逛斗南花市、滇池，吃过桥米线、野生菌。",
+        img: "https://images.unsplash.com/photo-1597773159462-f87e719de3ad"
+    },
+    "曲靖市": {
+        intro: "滇东重镇，珠江源头，爨文化故乡。",
+        guide: "逛大海草山，吃蒸饵丝、辣子鸡。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "玉溪市": {
+        intro: "云烟之乡，聂耳故乡，高原水乡。",
+        guide: "逛抚仙湖，吃米线、抗浪鱼。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "保山市": {
+        intro: "滇西咽喉，翡翠之城，边境文化浓厚。",
+        guide: "逛和顺古镇，吃大救驾、保山豆粉。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "昭通市": {
+        intro: "滇北门户，苹果之乡，峡谷风光壮美。",
+        guide: "逛大山包，吃昭通小肉串、苹果。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "丽江市": {
+        intro: "世界遗产，丽江古城、玉龙雪山所在地，文艺浪漫之都。",
+        guide: "逛古城、玉龙雪山，吃腊排骨、鲜花饼。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "普洱市": {
+        intro: "普洱茶之乡，咖啡之城，热带生态秘境。",
+        guide: "逛普洱茶园，吃手抓饭、咖啡。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "临沧市": {
+        intro: "滇西秘境，佤族风情浓郁，茶叶之城。",
+        guide: "逛翁丁古寨，吃鸡肉烂饭、牛干巴。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "楚雄彝族自治州": {
+        intro: "彝人古镇，恐龙之乡，彝族风情浓郁。",
+        guide: "逛彝人古镇，吃野生菌、彝家菜。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "红河哈尼族彝族自治州": {
+        intro: "滇南名城，元阳梯田、建水古城所在地，民族风情浓郁。",
+        guide: "逛元阳梯田、建水古城，吃过桥米线、烧豆腐。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "文山壮族苗族自治州": {
+        intro: "三七之乡，喀斯特秘境，边境风情。",
+        guide: "逛普者黑，吃三七鸡、花米饭。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "西双版纳傣族自治州": {
+        intro: "热带风情，傣家竹楼，大象、孔雀、热带雨林。",
+        guide: "逛告庄、野象谷，吃傣味烧烤、菠萝饭。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "大理白族自治州": {
+        intro: "风花雪月，大理古城、洱海所在地，白族风情浓郁。",
+        guide: "逛洱海、古城，吃乳扇、酸辣鱼。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "德宏傣族景颇族自治州": {
+        intro: "边境秘境，孔雀之乡，异域风情浓郁。",
+        guide: "逛瑞丽、芒市，吃泡鲁达、手抓饭。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "怒江傈僳族自治州": {
+        intro: "峡谷秘境，人神共居之地，原生态风光。",
+        guide: "逛丙察察、老姆登，吃手抓饭、石板烤。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "迪庆藏族自治州": {
+        intro: "香格里拉，雪域高原，梅里雪山所在地。",
+        guide: "逛普达措、松赞林寺，吃牦牛肉、酥油茶。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+
+    // 西藏自治区
+    "拉萨市": {
+        intro: "日光之城，雪域圣城，藏传佛教圣地。",
+        guide: "逛布达拉宫、大昭寺，吃藏面、甜茶。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "日喀则市": {
+        intro: "后藏中心，珠峰故乡，历代班禅驻地。",
+        guide: "逛扎什伦布寺、珠峰，吃藏餐、青稞酒。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "昌都市": {
+        intro: "藏东明珠，康巴文化中心，峡谷风光壮美。",
+        guide: "逛强巴林寺，吃藏餐、风干肉。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "林芝市": {
+        intro: "西藏江南，雪山森林，桃花秘境。",
+        guide: "逛巴松措、鲁朗，吃石锅鸡、藏香猪。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "山南市": {
+        intro: "藏文化发源地，雅砻文明圣地。",
+        guide: "逛雍布拉康，吃藏餐、青稞。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "那曲市": {
+        intro: "羌塘草原，高原之城，中国面积最大地级市。",
+        guide: "逛纳木错，吃牦牛肉、酥油茶。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "阿里地区": {
+        intro: "世界屋脊之屋脊，神山圣湖之地，藏西秘境。",
+        guide: "逛冈仁波齐、玛旁雍错，吃藏餐、风干肉。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+
+    // 陕西省
+    "西安市": {
+        intro: "十三朝古都，长安风华，兵马俑震撼，面食与羊肉香气四溢。",
+        guide: "逛兵马俑、不夜城，吃肉夹馍、凉皮、泡馍。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "铜川市": {
+        intro: "药王故里，煤城，关中北部名城。",
+        guide: "逛药王山，吃咸汤面、窝窝面。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "宝鸡市": {
+        intro: "炎帝故里，青铜器之乡，关中西大门。",
+        guide: "逛法门寺，吃臊子面、擀面皮。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "咸阳市": {
+        intro: "秦都，帝陵之乡，西安后花园。",
+        guide: "逛汉阳陵，吃锅盔牙子、汇通面。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "渭南市": {
+        intro: "三秦要道，八省通衢，华山所在地。",
+        guide: "登华山，吃时辰包子、水盆羊肉。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "延安市": {
+        intro: "红色革命圣地，陕北文化中心，窑洞风情。",
+        guide: "逛宝塔山，吃羊肉面、黄馍馍。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "汉中市": {
+        intro: "汉家发祥地，中华聚宝盆，鱼米之乡。",
+        guide: "逛武侯祠，吃热米皮、菜豆腐。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "榆林市": {
+        intro: "塞上驼城，能源之都，陕北边塞名城。",
+        guide: "逛统万城，吃羊肉、抿节。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "安康市": {
+        intro: "秦巴明珠，硒谷，生态宜居之城。",
+        guide: "逛瀛湖，吃蒸面、腊肉。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "商洛市": {
+        intro: "秦岭最美是商洛，生态秘境，核桃之乡。",
+        guide: "逛金丝峡，吃擀面皮、核桃。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+
+    // 甘肃省
+    "兰州市": {
+        intro: "黄河之城，西北门户，两山夹一川，牛肉面飘香千里。",
+        guide: "逛中山桥、白塔山，吃牛肉面、手抓羊肉。",
+        img: "https://images.unsplash.com/photo-1579942184486-ce42655f067d"
+    },
+    "嘉峪关市": {
+        intro: "天下第一雄关，长城西端，戈壁钢城。",
+        guide: "逛关城，吃烤肉、臊子面。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "金昌市": {
+        intro: "镍都，戈壁花城，工业之城。",
+        guide: "逛紫金花城，吃羊肉、面食。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "白银市": {
+        intro: "铜城，黄河上游名城，能源之都。",
+        guide: "逛黄河石林，吃凉皮、羊肉。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "天水市": {
+        intro: "羲皇故里，陇上江南，石窟艺术名城。",
+        guide: "逛麦积山石窟，吃呱呱、浆水面。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "武威市": {
+        intro: "凉州，马踏飞燕出土地，河西走廊重镇。",
+        guide: "逛雷台汉墓，吃面皮子、凉面。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "张掖市": {
+        intro: "塞上江南，丹霞之城，河西走廊中段。",
+        guide: "逛七彩丹霞，吃牛肉小饭、臊面。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "平凉市": {
+        intro: "道教第一山，崆峒山所在地，陇东名城。",
+        guide: "逛崆峒山，吃饸饹面、浆水面。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "酒泉市": {
+        intro: "航天之城，敦煌所在地，河西走廊西端。",
+        guide: "逛敦煌莫高窟、月牙泉，吃驴肉黄面、烤羊。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "庆阳市": {
+        intro: "陇东粮仓，岐黄故里，红色庆阳。",
+        guide: "逛周祖陵，吃饸饹面、土暖锅。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "定西市": {
+        intro: "薯都，陇中苦甲天下，中药材之乡。",
+        guide: "逛贵清山，吃浆水面、土豆。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "陇南市": {
+        intro: "陇上江南，甘肃唯一南方城市，气候温润。",
+        guide: "逛官鹅沟，吃洋芋搅团、面皮。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "临夏回族自治州": {
+        intro: "中国小麦加，回族风情浓郁，美食之城。",
+        guide: "逛八坊十三巷，吃手抓羊肉、河州包子。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "甘南藏族自治州": {
+        intro: "九色甘南，藏区小西藏，草原风光绝美。",
+        guide: "逛拉卜楞寺、桑科草原，吃藏餐、牦牛肉。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+
+    // 青海省
+    "西宁市": {
+        intro: "夏都，青藏高原门户，凉爽宜居，回族藏族风情浓郁。",
+        guide: "逛塔尔寺、东关大清真寺，吃手抓羊肉、酿皮。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "海东市": {
+        intro: "青海东大门，拉面之乡，彩陶故乡。",
+        guide: "逛瞿昙寺，吃拉面、手抓羊肉。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "海北藏族自治州": {
+        intro: "青海湖北岸，金银滩草原，原子城。",
+        guide: "逛青海湖、原子城，吃藏餐、牦牛肉。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "黄南藏族自治州": {
+        intro: "热贡艺术之乡，藏画圣地，生态秘境。",
+        guide: "逛隆务寺，吃藏餐、酸奶。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "海南藏族自治州": {
+        intro: "青海湖南岸，龙羊峡所在地，高原水城。",
+        guide: "逛青海湖、龙羊峡，吃藏餐、牦牛肉。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "果洛藏族自治州": {
+        intro: "格萨尔王故乡，黄河源头，雪域秘境。",
+        guide: "逛年保玉则，吃藏餐、酥油茶。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "玉树藏族自治州": {
+        intro: "三江源头，康巴文化中心，雪域高原。",
+        guide: "逛文成公主庙，吃藏餐、风干肉。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "海西蒙古族藏族自治州": {
+        intro: "聚宝盆，柴达木盆地，盐湖、戈壁、雅丹地貌。",
+        guide: "逛茶卡盐湖、翡翠湖，吃炕锅羊肉、烤羊。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+
+    // 宁夏回族自治区
+    "银川市": {
+        intro: "塞上湖城，回族风情，西夏古都，滩羊之乡。",
+        guide: "逛西夏王陵、镇北堡，吃手抓羊肉、凉皮。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "石嘴山市": {
+        intro: "塞上煤城，沙湖所在地，滨湖水城。",
+        guide: "逛沙湖，吃沙湖大鱼头、羊肉。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "吴忠市": {
+        intro: "回族美食之都，滩羊之乡，滨河之城。",
+        guide: "逛黄河楼，吃手抓羊肉、羊杂碎。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "固原市": {
+        intro: "六盘山之城，红色固原，生态宜居。",
+        guide: "逛六盘山，吃羊肉、荞面。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "中卫市": {
+        intro: "沙漠水城，沙坡头所在地，枸杞之乡。",
+        guide: "逛沙坡头，吃中卫蒿子面、枸杞。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+
+    // 新疆维吾尔自治区
+    "乌鲁木齐市": {
+        intro: "西域天山之城，瓜果之乡，草原风情，西域美食汇聚地。",
+        guide: "逛国际大巴扎，吃烤包子、手抓饭、大盘鸡。",
+        img: "https://images.unsplash.com/photo-1560570221-4513a3b96317"
+    },
+    "克拉玛依市": {
+        intro: "石油之城，戈壁油城，魔鬼城所在地。",
+        guide: "逛世界魔鬼城，吃烤肉、大盘鸡。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "吐鲁番市": {
+        intro: "火洲，葡萄之乡，坎儿井、火焰山所在地。",
+        guide: "逛葡萄沟、火焰山，吃葡萄、烤包子。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "哈密市": {
+        intro: "哈密瓜之乡，东疆门户，西域名城。",
+        guide: "逛哈密王陵，吃哈密瓜、烤肉。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "昌吉回族自治州": {
+        intro: "庭州，回族风情，天山北坡名城。",
+        guide: "逛天山天池，吃手抓肉、九碗三行子。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+    "博尔塔拉蒙古自治州": {
+        intro: "西来之异境，世外之灵壤，赛里木湖所在地。",
+        guide: "逛赛里木湖，吃奶茶、手抓肉。",
+        img: "https://images.unsplash.com/photo-1580822171340-b92481db5ee7"
+    },
+    "巴音郭楞蒙古自治州": {
+        intro: "华夏第一州，塔里木河、胡杨林所在地。",
+        guide: "逛博斯腾湖、胡杨林，吃烤肉、大盘鸡。",
+        img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186"
+    },
+    "阿克苏地区": {
+        intro: "白水城，苹果之乡，南疆绿洲名城。",
+        guide: "逛天山神秘大峡谷，吃苹果、烤肉。",
+        img: "https://images.unsplash.com/photo-1518568814500-bf0f8d125f46"
+    },
+    "克孜勒苏柯尔克孜自治州": {
+        intro: "柯尔克孜族之乡，帕米尔高原秘境。",
+        guide: "逛慕士塔格峰，吃手抓肉、奶茶。",
+        img: "https://images.unsplash.com/photo-1587344050126-4558a307193f"
+    },
+    "喀什地区": {
+        intro: "喀什噶尔，西域风情最浓之地，千年古城。",
+        guide: "逛喀什古城、香妃园，吃烤包子、缸子肉。",
+        img: "https://images.unsplash.com/photo-1555109307-f7d9da25c244"
+    },
+    "和田地区": {
+        intro: "玉石之都，地毯之乡，南疆绿洲。",
+        guide: "逛和田老城，吃烤蛋、核桃。",
+        img: "https://images.unsplash.com/photo-1519681393784-d120267933ba"
+    },
+    "伊犁哈萨克自治州": {
+        intro: "塞外江南，天马故乡，草原风光绝美。",
+        guide: "逛那拉提、喀拉峻，吃手抓肉、奶茶。",
+        img: "https://images.unsplash.com/photo-1564594736624-def7a10ab04e"
+    },
+    "塔城地区": {
+        intro: "油画塔城，边境之城，多民族风情浓郁。",
+        guide: "逛巴克图口岸，吃风干肉、奶茶。",
+        img: "https://images.unsplash.com/photo-1513836222750-3507daa06daf"
+    },
+    "阿勒泰地区": {
+        intro: "金山银水，喀纳斯、禾木所在地，人间仙境。",
+        guide: "逛喀纳斯、禾木，吃手抓肉、狗鱼。",
+        img: "https://images.unsplash.com/photo-1593205376643-5be342b328f2"
+    },
+
+    // 特别行政区
+    "香港特别行政区": {
+        intro: "东方之珠，国际金融中心，中西文化交融。",
+        guide: "逛维多利亚港、迪士尼，吃早茶、烧腊。",
+        img: "https://images.unsplash.com/photo-1573752060001-48e8c12b8862"
+    },
+    "澳门特别行政区": {
+        intro: "东方赌城，葡式风情，世界文化遗产小城。",
+        guide: "逛大三巴、官也街，吃葡挞、猪扒包。",
+        img: "https://images.unsplash.com/photo-1534352768560-431594542954"
+    },
+            "珠海市": {
+                intro: "百岛之市，浪漫之城，生活节奏舒缓，环境极其干净整洁。",
+                guide: "夏天非常适合带家人去横琴的长隆海洋王国，在巨大的室内水族馆看着鲸鲨避暑。或者沿着情侣路骑行，打卡日月贝大剧院，远眺港珠澳大桥，享受海滨城市的惬意。",
+                img: "https://images.unsplash.com/photo-1622384661853-9366d7e0d37e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+            }
+        };
+
+      
+        const defaultData = {
+            intro: "你选的啥破地，还没写",
+            guide: "不知道，我没去过",
+            img: "https://images.unsplash.com/photo-1506461883276-594a12b11ac3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+        };
+
+
+        let currentMapLevel = 'china'; 
+        const myChart = echarts.init(document.getElementById('map-container'));
+        const backBtn = document.getElementById('back-btn');
+        const loadingText = document.getElementById('loading-text');
+        
+      
+        const overlay = document.getElementById('overlay');
+        const closeBtn = document.getElementById('close-btn');
+        const modalTitle = document.getElementById('modal-title');
+        const modalIntro = document.getElementById('modal-intro');
+        const modalGuide = document.getElementById('modal-guide');
+        const modalImg = document.getElementById('modal-img');
+
+    
+        closeBtn.onclick = () => overlay.classList.remove('active');
+        overlay.onclick = (e) => { if(e.target === overlay) overlay.classList.remove('active'); };
+
+
+
+
+        function getMapOptions(mapName) {
+            return {
+                tooltip: {
+                    trigger: 'item',
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    padding: [10, 15],
+                    textStyle: { color: '#1D1D1F', fontSize: 14 },
+                    borderWidth: 0,
+                    extraCssText: 'box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); border-radius: 8px;',
+                    formatter: function(params) {
+                        let hint = currentMapLevel === 'china' ? "点击下钻查看各市" : "点击查看城市攻略";
+                        return `<span style="font-weight:600;">${params.name}</span><br/><span style="font-size:12px;color:#86868B">${hint}</span>`;
+                    }
+                },
+                series: [{
+                    name: '地域',
+                    type: 'map',
+                    map: mapName,
+                    roam: true,
+                    scaleLimit: { min: 0.8, max: 4 },
+                    label: { show: true, color: '#86868B', fontSize: 11 },
+                    itemStyle: {
+                        areaColor: '#E5E5EA',
+                        borderColor: '#FFFFFF',
+                        borderWidth: 1.5
+                    },
+                    emphasis: {
+                        label: { color: '#1D1D1F', fontWeight: 'bold' },
+                        itemStyle: {
+                            areaColor: '#0066CC', 
+                            shadowBlur: 15,
+                            shadowColor: 'rgba(0, 102, 204, 0.3)'
+                        }
+                    },
+                    select: { disabled: true }
+                }]
+            };
+        }
+        function loadChinaMap() {
+            loadingText.style.display = 'block';
+            fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+                .then(res => res.json())
+                .then(geoJson => {
+                    loadingText.style.display = 'none';
+                    echarts.registerMap('china', geoJson);
+                    myChart.setOption(getMapOptions('china'), true);
+                    currentMapLevel = 'china';
+                    backBtn.style.display = 'none'; 
+                }).catch(err => console.error(err));
+        }
+        function loadProvinceMap(provinceName) {
+            const adcode = provinceAdcodes[provinceName];
+            if (!adcode) {
+                alert("该区域暂无详细的下钻数据");
+                return;
+            }
+            
+            loadingText.style.display = 'block';
+            loadingText.innerText = `正在加载 ${provinceName} 数据...`;
+           
+            fetch(`https://geo.datav.aliyun.com/areas_v3/bound/${adcode}_full.json`)
+                .then(res => res.json())
+                .then(geoJson => {
+                    loadingText.style.display = 'none';
+                    echarts.registerMap(provinceName, geoJson);
+                    myChart.setOption(getMapOptions(provinceName), true);
+                    currentMapLevel = 'province';
+                    backBtn.style.display = 'block'; 
+                }).catch(err => {
+                    loadingText.style.display = 'none';
+                    alert("想啥呢");
+                    console.error(err);
+                });
+        }
+
+        myChart.on('click', function (params) {
+            const name = params.name;
+            
+            if (currentMapLevel === 'china') {
+             
+                loadProvinceMap(name);
+            } else if (currentMapLevel === 'province') {
+            
+                let data = cityData[name] || defaultData;
+                
+                modalTitle.innerText = name;
+                modalIntro.innerText = data.intro;
+                modalGuide.innerText = data.guide;
+                modalImg.src = data.img;
+
+                overlay.classList.add('active');
+            }
+        });
+
+          backBtn.addEventListener('click', () => {
+            loadChinaMap();
+        });
+
+      window.addEventListener('resize', () => myChart.resize());
+
+      
+        loadChinaMap();
+
+    </script>
+</body>
+</html>
