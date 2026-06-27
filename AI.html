@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 聚合导航 - 超级武器库</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: white;
+            text-align: center;
+            padding: 4rem 1rem;
+        }
+        header h1 { margin: 0; font-size: 2.8rem; letter-spacing: 2px;}
+        header p { margin-top: 1rem; color: #a8d5e2; font-size: 1.1rem; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .category-title {
+            font-size: 1.6rem;
+            color: #111827;
+            border-left: 5px solid #3b82f6;
+            padding-left: 1rem;
+            margin-top: 3.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+            border: 1px solid #f3f4f6;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+            border-color: #3b82f6;
+        }
+        
+        .card h3 { 
+            margin: 0 0 0.5rem 0; 
+            color: #1d4ed8; 
+            font-size: 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card .tags {
+            font-size: 0.75rem;
+            background-color: #eff6ff;
+            color: #2563eb;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: normal;
+        }
+        .card p { 
+            margin: 0; 
+            color: #6b7280; 
+            font-size: 0.9rem; 
+            line-height: 1.5;
+        }
+
+        footer {
+            text-align: center;
+            padding: 3rem;
+            background-color: #111827;
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-top: 4rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>AI 超级导航站</h1>
+        <p>为你精选全球最前沿、最实用的人工智能工具</p >
+    </header>
+
+    <div class="container">
+
+        <h2 class="category-title">🌐 国际顶尖大模型 (LLM)</h2>
+        <div class="grid">
+            <a href=" " target="_blank" class="card">
+                <h3>ChatGPT <span class="tags">OpenAI</span></h3>
+                <p>地表最强综合语言模型，支持GPT-4o，日常生产力首选。</p >
+            </a >
+            <a href="https://claude.ai/" target="_blank" class="card">
+                <h3>Claude <span class="tags">Anthropic</span></h3>
+                <p>文字表达最细腻、代码逻辑极强、超大上下文支持。</p >
+            </a >
+            <a href="https://gemini.google.com/" target="_blank" class="card">
+                <h3>Gemini <span class="tags">Google</span></h3>
+                <p>谷歌原生多模态巨头，与谷歌生态深度绑定。</p >
+            </a >
+            <a href="https://www.perplexity.ai/" target="_blank" class="card">
+                <h3>Perplexity <span class="tags">AI搜索</span></h3>
+                <p>目前最好用的AI搜索引擎，精准提供来源引用，告别传统搜索。</p >
+            </a >
+            <a href="https://copilot.microsoft.com/" target="_blank" class="card">
+                <h3>Microsoft Copilot <span class="tags">微软</span></h3>
+                <p>基于GPT-4，集成在必应中，免费使用且支持画图和联网。</p >
+            </a >
+        </div>
+        <h2 class="category-title">CN 国内主力大模型</h2>
+        <div class="grid">
+            <a href="https://kimi.moonshot.cn/" target="_blank" class="card">
+                <h3>Kimi 智能助手 <span class="tags">月之暗面</span></h3>
+                <p>支持超长文本解析和精准联网搜索，国内极受欢迎的AI工具。</p >
+            </a >
+            <a href="https://chat.deepseek.com/" target="_blank" class="card">
+                <h3>DeepSeek <span class="tags">深度求索</span></h3>
+                <p>程序员最爱的国产模型，代码和逻辑推理能力堪比GPT-4。</p >
+            </a >
+            <a href="https://tongyi.aliyun.com/" target="_blank" class="card">
+                <h3>通义千问 <span class="tags">阿里</span></h3>
+                <p>阿里云推出的全能大模型，支持超长文档阅读和多模态交互。</p >
+            </a >
+            <a href="https://yiyan.baidu.com/" target="_blank" class="card">
+                <h3>文心一言 <span class="tags">百度</span></h3>
+                <p>国内最早发布的大模型，中文理解深厚，内置丰富插件。</p >
+            </a >
+            <a href="https://www.doubao.com/" target="_blank" class="card">
+                <h3>豆包 <span class="tags">字节跳动</span></h3>
+                <p>响应速度极快，拥有非常出色的拟真语音交互能力。</p >
+            </a >
+            <a href="https://chatglm.cn/" target="_blank" class="card">
+                <h3>智谱清言 <span class="tags">智谱AI</span></h3>
+                <p>国内大模型第一梯队，数据分析和文档处理能力出众。</p >
+            </a >
+        </div>
+
+        <h2 class="category-title">🎨 AI 图像与设计</h2>
+        <div class="grid">
+            <a href="https://www.midjourney.com/" target="_blank" class="card">
+                <h3>Midjourney <span class="tags">最强画质</span></h3>
+                <p>公认艺术感、细节最强的AI绘画工具，需通过Discord使用。</p >
+            </a >
+            <a href="https://www.liblib.art/" target="_blank" class="card">
+                <h3>LiblibAI <span class="tags">哩布哩布</span></h3>
+                <p>国内最大的AI在线生图与模型分享社区，基于Stable Diffusion。</p >
+            </a >
+            <a href="https://leonardo.ai/" target="_blank" class="card">
+                <h3>Leonardo.ai <span class="tags">设计利器</span></h3>
+                <p>MJ的绝佳替代品，界面友好，提供大量精美预设模型。</p >
+            </a >
+        </div>
+        <h2 class="category-title">🎬 AI 视频创作</h2>
+        <div class="grid">
+            <a href="https://klingai.kuaishou.com/" target="_blank" class="card">
+                <h3>可灵大模型 (Kling) <span class="tags">快手</span></h3>
+                <p>目前国内最强、全球顶尖的视频生成大模型，物理规律极其逼真。</p >
+            </a >
+            <a href="https://runwayml.com/" target="_blank" class="card">
+                <h3>Runway <span class="tags">视频巨头</span></h3>
+                <p>老牌AI视频霸主，Gen-2与Gen-3大模型提供顶级的视频生成与编辑。</p >
+            </a >
+            <a href="https://pika.art/" target="_blank" class="card">
+                <h3>Pika <span class="tags">动画神器</span></h3>
+                <p>让静态图片动起来的绝佳工具，风格多样，对动漫风格尤其友好。</p >
+            </a >
+        </div>
+
+        <h2 class="category-title">🎵 AI 音乐与配音</h2>
+        <div class="grid">
+            <a href="https://suno.com/" target="_blank" class="card">
+                <h3>Suno <span class="tags">AI音乐大作</span></h3>
+                <p>输入几句歌词，即可生成带有人声演唱的完整高质量歌曲。</p >
+            </a >
+            <a href="https://www.udio.com/" target="_blank" class="card">
+                <h3>Udio <span class="tags">超强音质</span></h3>
+                <p>Suno的最强竞品，音质更佳，段落控制和情绪表现极其细腻。</p >
+            </a >
+            <a href="https://elevenlabs.io/" target="_blank" class="card">
+                <h3>ElevenLabs <span class="tags">顶级配音</span></h3>
+                <p>目前全球公认最自然的AI文本转语音(TTS)工具，情感逼真。</p >
+            </a >
+        </div>
+
+        <h2 class="category-title">💻 编程代码 & 效率办公</h2>
+        <div class="grid">
+            <a href="https://cursor.sh/" target="_blank" class="card">
+                <h3>Cursor <span class="tags">神级编辑器</span></h3>
+                <p>当前最火的AI代码编辑器，基于VS Code，完美集成强大AI问答与生成。</p >
+            </a >
+            <a href="https://github.com/features/copilot" target="_blank" class="card">
+                <h3>GitHub Copilot <span class="tags">代码补全</span></h3>
+                <p>最主流的AI结对编程助手，自动预测并补全你的代码。</p >
+            </a >
+            <a href="https://gamma.app/" target="_blank" class="card">
+                <h3>Gamma <span class="tags">一键PPT</span></h3>
+                <p>输入一个标题或大纲，即可在几秒钟内生成设计精美的PPT和网页。</p >
+            </a >
+        </div>
+
+    </div>
+
+    <footer>
+        <p>© 2026 AI 聚合导航. 掌握AI工具，即掌握未来生产力。</p >
+    </footer>
+
+</body>
+</html>
